@@ -25,14 +25,8 @@ pub fn EnumToError(comptime some_type: type) type {
 }
 
 test "enum_to_error" {
-    const Value = enum(u2) {
-        zero = 0,
-        one = 1,
-        two = 2,
-    };
-    _ = Value;
-    // const error_type = EnumToError(some_enum);
-    // _ = error_type;
-    // std.debug.print("{*}\n", .{@typeInfo(Value).Enum.decls.ptr});
-    // std.debug.print("{any}\n", .{error_type.from_error_code(1000)});
+    const SomeEnum = enum(u16) { one = 1, thousand = 1000 };
+    const error_type = EnumToError(SomeEnum);
+    try std.testing.expect(error_type.from_error_code(1000) orelse unreachable == error.thousand);
+    try std.testing.expect(error_type.from_error_code(1) orelse unreachable == error.one);
 }

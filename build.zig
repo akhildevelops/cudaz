@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
     });
     lib.linkLibC();
 
-    lib.addIncludePath(.{ .path = "/usr/local/cuda-12.2/targets/x86_64-linux/include" });
+    lib.addIncludePath(.{ .path = "/usr/local/cuda/targets/x86_64-linux/include" });
     // lib.linkSystemLibrary("cuda");
 
     // This declares intent for the library to be installed into the standard
@@ -36,12 +36,12 @@ pub fn build(b: *std.Build) void {
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/error.zig" },
+        .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
     main_tests.linkLibC();
-    main_tests.addIncludePath(.{ .path = "/usr/local/cuda-12.2/targets/x86_64-linux/include" });
+    main_tests.addIncludePath(.{ .path = "/usr/local/cuda/targets/x86_64-linux/include" });
     main_tests.linkSystemLibrary("cuda");
     const run_main_tests = b.addRunArtifact(main_tests);
 

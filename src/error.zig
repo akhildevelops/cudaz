@@ -3,7 +3,7 @@ const std = @import("std");
 const Type = std.builtin.Type;
 const cuda = @import("cuda.zig");
 const utils = @import("utils.zig");
-fn gen_cuda_error() type {
+fn CudaErrorsToEnum(comptime tag_type: type) type {
     switch (@typeInfo(cuda)) {
         .Struct => |x| {
             const null_decls: []const Type.Declaration = &.{};
@@ -17,24 +17,25 @@ fn gen_cuda_error() type {
                 }
             }
 
-            return @Type(Type{ .Enum = .{ .tag_type = u16, .fields = errors[0..counter], .decls = null_decls, .is_exhaustive = false } });
+            return @Type(Type{ .Enum = .{ .tag_type = tag_type, .fields = errors[0..counter], .decls = null_decls, .is_exhaustive = false } });
         },
         else => @compileError("Cannot generate error type"),
     }
 }
+// const Self = @This();
+pub fn fromCudaErrorCode(error_code: u32) !void {
+    if (error_code == 0) return;
+    std.debug.print("{d}", .{error_code});
+    const cuda_error_enums = comptime CudaErrorsToEnum(u32);
+    const some_struct = utils.EnumToError(cuda_error_enums);
+    const val = some_struct.from_error_code(error_code).?;
+    std.debug.print("{any}", .{val});
+    return val;
+}
 
 test "Test_Gen_Errors" {
-    const Error = comptime gen_cuda_error();
-    // switch (@typeInfo(Error)) {
-    //     .Enum => |error_elements| {
-    //         for (error_elements orelse unreachable) |e| {
-    //             std.debug.print("{s}\n", .{e.name});
-    //         }
-    //     },
-    //     else => @compileError("Test failed"),
-    // }
-    // std.debug.print("{any}", .{@typeInfo(Error)});
-    const some_struct = utils.EnumToError(Error);
-    std.debug.print("{any}\n\n", .{some_struct.from_error_code(1)});
-    // @compileLog("Reached");
+    //zig test error.zig -lcuda -I /usr/local/cuda-12.2/targets/x86_64-linux/include
+    const cuda_error_enums = comptime CudaErrorsToEnum(u32);
+    const some_struct = utils.EnumToError(cuda_error_enums);
+    try std.testing.expect(some_struct.from_error_code(1) orelse unreachable == error.CUDA_ERROR_INVALID_VALUE);
 }
