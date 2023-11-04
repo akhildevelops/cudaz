@@ -3,6 +3,10 @@ const std = @import("std");
 const Type = std.builtin.Type;
 const cuda = @import("cuda.zig");
 const utils = @import("utils.zig");
+
+const CudaErrorEnum: type = CudaErrorsToEnum(u32);
+pub const CudaError = utils.EnumToError(CudaErrorEnum);
+
 fn CudaErrorsToEnum(comptime tag_type: type) type {
     switch (@typeInfo(cuda)) {
         .Struct => |x| {
@@ -22,20 +26,16 @@ fn CudaErrorsToEnum(comptime tag_type: type) type {
         else => @compileError("Cannot generate error type"),
     }
 }
-// const Self = @This();
-pub fn fromCudaErrorCode(error_code: u32) !void {
+
+pub fn fromCudaErrorCode(error_code: u32) CudaError.Error!void {
     if (error_code == 0) return;
-    std.debug.print("{d}", .{error_code});
-    const cuda_error_enums = comptime CudaErrorsToEnum(u32);
-    const some_struct = utils.EnumToError(cuda_error_enums);
-    const val = some_struct.from_error_code(error_code).?;
-    std.debug.print("{any}", .{val});
+    const val = CudaError.from_error_code(error_code).?;
     return val;
 }
 
 test "Test_Gen_Errors" {
     //zig test error.zig -lcuda -I /usr/local/cuda-12.2/targets/x86_64-linux/include
-    const cuda_error_enums = comptime CudaErrorsToEnum(u32);
-    const some_struct = utils.EnumToError(cuda_error_enums);
-    try std.testing.expect(some_struct.from_error_code(1) orelse unreachable == error.CUDA_ERROR_INVALID_VALUE);
+    const test_cuda_error_enums = comptime CudaErrorsToEnum(u32);
+    const test_some_struct = utils.EnumToError(test_cuda_error_enums);
+    try std.testing.expect(test_some_struct.from_error_code(1) orelse unreachable == error.CUDA_ERROR_INVALID_VALUE);
 }

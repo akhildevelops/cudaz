@@ -35,11 +35,7 @@ pub fn build(b: *std.Build) void {
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
-    const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
+    const main_tests = b.addTest(.{ .root_source_file = .{ .path = "./test.zig" }, .target = target, .optimize = optimize });
     main_tests.linkLibC();
     main_tests.addIncludePath(.{ .path = "/usr/local/cuda/targets/x86_64-linux/include" });
     main_tests.linkSystemLibrary("cuda");

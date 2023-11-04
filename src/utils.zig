@@ -9,6 +9,7 @@ pub fn EnumToError(comptime some_type: type) type {
             }
             const error_type = @Type(std.builtin.Type{ .ErrorSet = &error_names });
             return struct {
+                pub const Error: type = error_type;
                 pub fn from_error_code(x: enum_type.tag_type) ?error_type {
                     const enum_val: some_type = @enumFromInt(x);
                     inline for (@typeInfo(error_type).ErrorSet orelse unreachable) |error_val| {
