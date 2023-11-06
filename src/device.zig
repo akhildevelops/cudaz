@@ -48,18 +48,49 @@ pub const CudaDevice = struct {
         return Self.new(0);
     }
 
-    pub fn alloc(self: Self, comptime data_type: type, length: usize) CudaError.Error!CudaSlice {
+    pub fn alloc(self: Self, comptime data_type: type, length: usize) CudaError.Error!CudaSlice(data_type) {
         var device_ptr: cuda.CUdeviceptr = undefined;
         try Error.fromCudaErrorCode(cuda.cuMemAlloc(&device_ptr, @sizeOf(data_type) * length));
         return .{ .device_ptr = device_ptr, .len = length, .device = self };
     }
-};
-
-const CudaSlice = struct {
-    device_ptr: cuda.CUdeviceptr,
-    len: usize,
-    device: CudaDevice,
-    pub fn free(self: @This()) CudaError.Error!void {
-        try Error.fromCudaErrorCode(cuda.cuMemFree_v2(self.device_ptr));
+    pub fn alloc_zeros(self: Self, comptime data_type: type, length: usize) CudaError.Error!CudaSlice(data_type) {
+        const slice = try self.alloc(data_type, length);
+        try Self.memset_zeros(data_type, slice);
+        return slice;
+    }
+    pub fn memset_zeros(comptime data_type: type, cuda_slice: CudaSlice(data_type)) CudaError.Error!void {
+        try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * @sizeOf(data_type)));
+    }
+    pub fn free(self: Self) void {
+        Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
+    }
+    pub fn htod_copy_into(self: Self, comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
+        _ = self;
+        try Error.fromCudaErrorCode(cuda.cuMemcpyHtoD_v2(destination.device_ptr, @ptrCast(src), @sizeOf(T) * src.len));
+    }
+    pub fn htod_copy(self: Self, comptime T: type, src: []const T) CudaError.Error!CudaSlice(T) {
+        const slice = try self.alloc(T, src.len);
+        try self.htod_copy_into(T, src, slice);
+        return slice;
+    }
+    pub fn sync_reclaim(self: Self, comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) !std.ArrayList(T) {
+        _ = self;
+        var h_Array = try std.ArrayList(T).initCapacity(allocator, slice.len);
+        try Error.fromCudaErrorCode(cuda.cuMemcpyDtoH_v2(@ptrCast(h_Array.items), slice.device_ptr, @sizeOf(T) * slice.len));
+        // Zig doesn't know the item pointer length, so setting the length of slice.
+        h_Array.items.len = slice.len;
+        return h_Array;
     }
 };
+
+fn CudaSlice(comptime T: type) type {
+    return struct {
+        device_ptr: cuda.CUdeviceptr,
+        len: usize,
+        device: CudaDevice,
+        pub const element_type: type = T;
+        pub fn free(self: @This()) void {
+            Error.fromCudaErrorCode(cuda.cuMemFree_v2(self.device_ptr)) catch |err| @panic(@errorName(err));
+        }
+    };
+}
