@@ -9,21 +9,23 @@ pub const Device = struct {
     device: cuda.CUdevice,
     primary_context: cuda.CUcontext,
     ordinal: u16,
-    modules: ?std.StringHashMap(CudaModule),
+    // modules: ?std.StringHashMap(CudaModule),
     const Self = @This();
 
-    pub fn load_ptx(self: *Self, file_path: path.PathBuffer, module_name: []const u8, function_names: [][]const u8, allocator: std.mem.Allocator) !void {
+    //pub fn load_ptx(self: *Self, file_path: path.PathBuffer, module_name: []const u8, function_names: [][]const u8, allocator: std.mem.Allocator) !CudaModule {
+    pub fn load_ptx(file_path: path.PathBuffer) CudaError.Error!Module {
         var module: cuda.CUmodule = undefined;
         try Error.fromCudaErrorCode(cuda.cuModuleLoad(&module, file_path.raw_path.ptr));
-        var mapping = std.StringHashMap(cuda.CUfunction).init(allocator);
-        for (function_names) |name| {
-            var function: cuda.CUfunction = undefined;
-            try Error.fromCudaErrorCode(cuda.cuModuleGetFunction(&function, module, name.ptr));
-            try mapping.put(name, function);
-        }
-        const lmodule: CudaModule = .{ .name = module_name, .functions = mapping };
-        self.modules = std.StringHashMap(CudaModule).init(allocator);
-        try self.modules.?.put(module_name, lmodule);
+        // var mapping = std.StringHashMap(cuda.CUfunction).init(allocator);
+        // for (function_names) |name| {
+        //     var function: cuda.CUfunction = undefined;
+        //     try Error.fromCudaErrorCode(cuda.cuModuleGetFunction(&function, module, name.ptr));
+        //     try mapping.put(name, function);
+        // }
+        // const lmodule: CudaModule = .{ .name = module_name, .functions = mapping };
+        // self.modules = std.StringHashMap(CudaModule).init(allocator);
+        // try self.modules.?.put(module_name, lmodule);
+        return .{ .cu_module = module };
     }
 
     pub fn new(gpu: u16) CudaError.Error!Self {
@@ -33,7 +35,11 @@ pub const Device = struct {
         try Error.fromCudaErrorCode(cuda.cuDeviceGet(&device, gpu));
         try Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRetain(&context, device));
         try Error.fromCudaErrorCode(cuda.cuCtxSetCurrent(context));
-        return .{ .device = device, .primary_context = context, .ordinal = gpu, .modules = null };
+        return .{
+            .device = device,
+            .primary_context = context,
+            .ordinal = gpu,
+        };
     }
 
     pub fn get_func(self: *const Self, module_name: []const u8, func_name: []const u8) !?CudaFunction {
@@ -60,29 +66,18 @@ pub const Device = struct {
         try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * @sizeOf(data_type)));
     }
     pub fn free(self: *Self) void {
-        if (self.modules) |*modules| {
-            var module_iter = modules.valueIterator();
-            for (0..@as(usize, modules.count())) |index| {
-                module_iter.items[index].deinit();
-            }
-            modules.deinit();
-        }
+        // if (self.modules) |*modules| {
+        //     var module_iter = modules.valueIterator();
+        //     for (0..@as(usize, modules.count())) |index| {
+        //         module_iter.items[index].deinit();
+        //     }
+        //     modules.deinit();
+        // }
         Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
     }
     pub fn htod_copy_into(self: Self, comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
         _ = self;
         try Error.fromCudaErrorCode(cuda.cuMemcpyHtoD_v2(destination.device_ptr, @ptrCast(src), @sizeOf(T) * src.len));
-    }
-    pub fn launch_func(self: Self, func: CudaFunction, cfg: LaunchConfig, params: anytype) !void {
-        _ = self;
-        if (@typeInfo(@TypeOf(params)) != .Struct) return error.params_not_struct;
-        inline for (@typeInfo(@TypeOf(params)).Struct.fields) |field| {
-            std.debug.print("{s}:{d}:{any}:{d}\n\n", .{ field.name, field.alignment, @typeInfo(field.type), @sizeOf(field.type) });
-        }
-        std.debug.print("{d}\n", .{@sizeOf(@TypeOf(params))});
-        // var k_params: ?*anytype = null;
-        var e_params: ?*u32 = null;
-        try Error.fromCudaErrorCode(cuda.cuLaunchKernel(func.cu_function, cfg.grid_dim[0], cfg.grid_dim[1], cfg.grid_dim[2], cfg.block_dim[0], cfg.block_dim[1], cfg.block_dim[2], cfg.shared_mem_bytes, null, @ptrCast(@constCast(&params)), @ptrCast(&e_params)));
     }
     pub fn htod_copy(self: Self, comptime T: type, src: []const T) CudaError.Error!CudaSlice(T) {
         const slice = try self.alloc(T, src.len);
@@ -118,17 +113,17 @@ fn CudaSlice(comptime T: type) type {
     };
 }
 
-const CudaModule = struct {
-    name: []const u8,
-    functions: std.StringHashMap(cuda.CUfunction),
-    const Self = @This();
-    pub fn deinit(self: *Self) void {
-        self.functions.deinit();
-    }
-    pub fn get_func(self: *const Self, func_name: []const u8) ?cuda.CUfunction {
-        return self.functions.get(func_name);
-    }
-};
+// const CudaModule = struct {
+//     name: []const u8,
+//     functions: std.StringHashMap(cuda.CUfunction),
+//     const Self = @This();
+//     pub fn deinit(self: *Self) void {
+//         self.functions.deinit();
+//     }
+//     pub fn get_func(self: *const Self, func_name: []const u8) ?cuda.CUfunction {
+//         return self.functions.get(func_name);
+//     }
+// };
 pub const LaunchConfig = struct {
     grid_dim: struct { u32, u32, u32 },
     block_dim: struct { u32, u32, u32 },
@@ -142,5 +137,24 @@ pub const LaunchConfig = struct {
             .block_dim = .{ NUM_THREADS, 1, 1 },
             .shared_mem_bytes = 0,
         };
+    }
+};
+
+pub const Function = struct {
+    cu_func: cuda.CUfunction,
+    pub fn run(self: @This(), params: anytype, cfg: LaunchConfig) CudaError.Error!void {
+        if (@typeInfo(@TypeOf(params)) != .Struct) return error.params_not_struct;
+        var e_params: ?*u32 = null;
+        try Error.fromCudaErrorCode(cuda.cuLaunchKernel(self.cu_func, cfg.grid_dim[0], cfg.grid_dim[1], cfg.grid_dim[2], cfg.block_dim[0], cfg.block_dim[1], cfg.block_dim[2], cfg.shared_mem_bytes, null, @ptrCast(@constCast(&params)), @ptrCast(&e_params)));
+    }
+};
+
+pub const Module = struct {
+    cu_module: cuda.CUmodule,
+
+    pub fn get_func(self: @This(), name: []const u8) CudaError.Error!Function {
+        var function: cuda.CUfunction = undefined;
+        try Error.fromCudaErrorCode(cuda.cuModuleGetFunction(&function, self.cu_module, name.ptr));
+        return .{ .cu_func = function };
     }
 };

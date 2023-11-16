@@ -33,24 +33,38 @@ test "device_to_host" {
 // Got segmentation fault because n was declared a  comptime_int construct and after compiling there will be no n, therefore cuda wan't able to fetch the value n.
 // Even if n is declared as const param there's seg fault, unless it's declared as var
 test "ptx_file" {
+
+    // Device Initialization
     var device = try Cuda.Device.default();
     defer device.free();
-    var name = [_][]const u8{
-        "sin_kernel",
-    };
-    try device.load_ptx(.{ .raw_path = "./sin.ptx" }, "sin", &name, std.testing.allocator);
-    const func = (try device.get_func("sin", "sin_kernel")).?;
-    // sin(0), sin(30), sin(60), sin(90)
+
+    //Load module from ptx
+    const module = try Cuda.Device.load_ptx(.{ .raw_path = "./sin.ptx" });
+    const func = try module.get_func("sin_kernel");
+
+    //init variables
     var float_arr = [_]f32{ 1.57, 0.5236, 0, 1.05 };
     const src_slice = try device.htod_copy(f32, &float_arr);
     var dest_slice = try src_slice.clone();
+
+    // Launch config
     const cfg = Cuda.LaunchConfig.for_num_elems(float_arr.len);
-    var n: i32 = float_arr.len;
-    std.debug.print("{d}\n", .{@sizeOf(@TypeOf(n))});
-    try device.launch_func(func, cfg, .{ &dest_slice.device_ptr, &src_slice.device_ptr, &n });
+    var n = float_arr.len;
+
+    // Run the func
+    try func.run(.{ &dest_slice.device_ptr, &src_slice.device_ptr, &n }, cfg);
+
     const sin_d = try device.sync_reclaim(f32, std.testing.allocator, dest_slice);
     defer sin_d.deinit();
-    std.debug.print("{any}\n", .{sin_d});
+
+    for (0..float_arr.len) |index| {
+        try std.testing.expect(std.math.approxEqAbs(f32, @sin(float_arr[index]), sin_d.items[index], std.math.floatEps(f32)));
+    }
+}
+fn wrap(text: []const u8, width: usize) [][]const u8 {
+    _ = width;
+    _ = text;
+    return &[_][]const u8{"hello"};
 }
 
 test "learn" {
@@ -59,5 +73,5 @@ test "learn" {
         _ = x;
     }
     const x: u16 = undefined;
-    std.debug.print("{d}\n", .{x});
+    _ = x;
 }
