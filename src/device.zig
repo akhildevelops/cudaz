@@ -9,22 +9,11 @@ pub const Device = struct {
     device: cuda.CUdevice,
     primary_context: cuda.CUcontext,
     ordinal: u16,
-    // modules: ?std.StringHashMap(CudaModule),
     const Self = @This();
 
-    //pub fn load_ptx(self: *Self, file_path: path.PathBuffer, module_name: []const u8, function_names: [][]const u8, allocator: std.mem.Allocator) !CudaModule {
     pub fn load_ptx(file_path: path.PathBuffer) CudaError.Error!Module {
         var module: cuda.CUmodule = undefined;
         try Error.fromCudaErrorCode(cuda.cuModuleLoad(&module, file_path.raw_path.ptr));
-        // var mapping = std.StringHashMap(cuda.CUfunction).init(allocator);
-        // for (function_names) |name| {
-        //     var function: cuda.CUfunction = undefined;
-        //     try Error.fromCudaErrorCode(cuda.cuModuleGetFunction(&function, module, name.ptr));
-        //     try mapping.put(name, function);
-        // }
-        // const lmodule: CudaModule = .{ .name = module_name, .functions = mapping };
-        // self.modules = std.StringHashMap(CudaModule).init(allocator);
-        // try self.modules.?.put(module_name, lmodule);
         return .{ .cu_module = module };
     }
 
@@ -65,14 +54,7 @@ pub const Device = struct {
     pub fn memset_zeros(comptime data_type: type, cuda_slice: CudaSlice(data_type)) CudaError.Error!void {
         try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * @sizeOf(data_type)));
     }
-    pub fn free(self: *Self) void {
-        // if (self.modules) |*modules| {
-        //     var module_iter = modules.valueIterator();
-        //     for (0..@as(usize, modules.count())) |index| {
-        //         module_iter.items[index].deinit();
-        //     }
-        //     modules.deinit();
-        // }
+    pub fn free(self: *const Self) void {
         Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
     }
     pub fn htod_copy_into(self: Self, comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
@@ -113,17 +95,6 @@ fn CudaSlice(comptime T: type) type {
     };
 }
 
-// const CudaModule = struct {
-//     name: []const u8,
-//     functions: std.StringHashMap(cuda.CUfunction),
-//     const Self = @This();
-//     pub fn deinit(self: *Self) void {
-//         self.functions.deinit();
-//     }
-//     pub fn get_func(self: *const Self, func_name: []const u8) ?cuda.CUfunction {
-//         return self.functions.get(func_name);
-//     }
-// };
 pub const LaunchConfig = struct {
     grid_dim: struct { u32, u32, u32 },
     block_dim: struct { u32, u32, u32 },

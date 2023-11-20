@@ -61,17 +61,3 @@ test "ptx_file" {
         try std.testing.expect(std.math.approxEqAbs(f32, @sin(float_arr[index]), sin_d.items[index], std.math.floatEps(f32)));
     }
 }
-fn wrap(text: []const u8, width: usize) [][]const u8 {
-    _ = width;
-    _ = text;
-    return &[_][]const u8{"hello"};
-}
-
-test "learn" {
-    comptime {
-        const x = 32;
-        _ = x;
-    }
-    const x: u16 = undefined;
-    _ = x;
-}
