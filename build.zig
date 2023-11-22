@@ -17,6 +17,8 @@ pub fn build(b: *std.Build) void {
 
     const CUDA_HEADER = "/usr/local/cuda/targets/x86_64-linux/include";
 
+    // const HEADER_FILES = std.ComptimeStringMap([]const u8, .{.{ "cuda", "/usr/local/cuda/targets/x86_64-linux/include" }});
+
     ////////////////////////////////////////////////////////////
     //// Static Library
     // Creates a compile step to create static cudaz library
@@ -32,9 +34,12 @@ pub fn build(b: *std.Build) void {
 
     // Path to cuda headers
     lib.addIncludePath(.{ .path = CUDA_HEADER });
+    // lib.addLibraryPath(directory_source: LazyPath)
+    lib.addLibraryPath(.{ .path = "/usr/local/cuda/lib64" });
 
     // Links libcuda.so as dynamic lib
     lib.linkSystemLibrary("cuda");
+    lib.linkSystemLibrary("nvrtc");
 
     // Installs the artifact into zig-out dir
     b.installArtifact(lib);
@@ -51,8 +56,9 @@ pub fn build(b: *std.Build) void {
     main_tests.addIncludePath(.{ .path = CUDA_HEADER });
 
     // Links libcuda.so as dynamic lib
+    main_tests.addLibraryPath(.{ .path = "/usr/local/cuda/lib64" });
     main_tests.linkSystemLibrary("cuda");
-
+    main_tests.linkSystemLibrary("nvrtc");
     // Creates a run step for test binary
     const run_main_tests = b.addRunArtifact(main_tests);
 
