@@ -43,7 +43,7 @@ const Options = struct {
     }
 };
 
-pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) !void {
+pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![]const u8 {
     var data = std.ArrayList(u8).init(allocator);
     try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));
     const data_sentinel = try data.toOwnedSliceSentinel(0);
@@ -52,6 +52,8 @@ pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Al
 
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, data_sentinel.ptr, undefined, 0, undefined, undefined));
     try cudaProgram(program, options, allocator);
+    const ptx_data = try getPtx(program, allocator);
+    return ptx_data;
 }
 
 pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.mem.Allocator) !void {
@@ -70,4 +72,14 @@ pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.me
         cp.* = p.ptr;
     }
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcCompileProgram(prg, std.math.cast(c_int, cparams.len).?, cparams.ptr));
+}
+
+pub fn getPtx(prg: nvrtc.nvrtcProgram, allocator: std.mem.Allocator) ![]const u8 {
+    var ptx_size: usize = undefined;
+    try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetPTXSize(prg, &ptx_size));
+
+    var ptx = try std.ArrayList(u8).initCapacity(allocator, ptx_size);
+    ptx.expandToCapacity();
+    try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetPTX(prg, ptx.items.ptr));
+    return try ptx.toOwnedSlice();
 }

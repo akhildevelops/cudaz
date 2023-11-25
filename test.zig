@@ -64,5 +64,7 @@ test "ptx_file" {
 
 test "compile_ptx" {
     const file = try std.fs.cwd().openFile("sin.cu", .{});
-    try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
+    const ptx_data = try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
+    std.debug.print("{s}\n", .{ptx_data});
+    std.testing.allocator.free(ptx_data);
 }
