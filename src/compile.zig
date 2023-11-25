@@ -3,6 +3,7 @@ const std = @import("std");
 const PTX = struct { compiled_code: [][]const u8, allocator: std.mem.Allocator };
 const Path = std.fs.path;
 const Error = @import("error.zig");
+const CompileError = std.mem.Allocator.Error || Error.NvrtcError.Error || std.os.ReadError || error{StreamTooLong};
 const Options = struct {
     ftz: ?bool = null,
     prec_sqrt: ?bool = null,
@@ -12,7 +13,7 @@ const Options = struct {
     include_paths: [][]const u8 = &[_][]const u8{},
     arch: ?[][]const u8 = null,
 
-    fn to_params(self: @This(), allocator: std.mem.Allocator) !std.ArrayList([:0]const u8) {
+    fn to_params(self: @This(), allocator: std.mem.Allocator) CompileError!std.ArrayList([:0]const u8) {
         var arr = std.ArrayList([:0]const u8).init(allocator);
         var ext_str: [:0]u8 = undefined;
         if (self.ftz) |field| {
@@ -42,21 +43,22 @@ const Options = struct {
         return arr;
     }
 };
-
-pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![]const u8 {
-    var data = std.ArrayList(u8).init(allocator);
-    try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));
-    const data_sentinel = try data.toOwnedSliceSentinel(0);
-    defer allocator.free(data_sentinel);
+pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
     var program: nvrtc.nvrtcProgram = undefined;
-
-    try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, data_sentinel.ptr, undefined, 0, undefined, undefined));
+    try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, cuda_text.ptr, undefined, 0, undefined, undefined));
     try cudaProgram(program, options, allocator);
     const ptx_data = try getPtx(program, allocator);
     return ptx_data;
 }
+pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
+    var data = std.ArrayList(u8).init(allocator);
+    try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));
+    const data_sentinel = try data.toOwnedSliceSentinel(0);
+    defer allocator.free(data_sentinel);
+    return try cudaText(data_sentinel, options, allocator);
+}
 
-pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.mem.Allocator) !void {
+pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.mem.Allocator) CompileError!void {
     const n_o = if (options != null) options.? else @as(Options, .{});
     var parmas = try n_o.to_params(allocator);
     const params_own = try parmas.toOwnedSlice();
@@ -74,12 +76,12 @@ pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.me
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcCompileProgram(prg, std.math.cast(c_int, cparams.len).?, cparams.ptr));
 }
 
-pub fn getPtx(prg: nvrtc.nvrtcProgram, allocator: std.mem.Allocator) ![]const u8 {
+pub fn getPtx(prg: nvrtc.nvrtcProgram, allocator: std.mem.Allocator) CompileError![:0]const u8 {
     var ptx_size: usize = undefined;
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetPTXSize(prg, &ptx_size));
 
     var ptx = try std.ArrayList(u8).initCapacity(allocator, ptx_size);
     ptx.expandToCapacity();
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetPTX(prg, ptx.items.ptr));
-    return try ptx.toOwnedSlice();
+    return try ptx.toOwnedSliceSentinel(0);
 }

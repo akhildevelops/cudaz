@@ -82,3 +82,21 @@ test "free_sentinel_slice" {
     const sentinel_slice = try arr.toOwnedSliceSentinel(0);
     std.testing.allocator.free(sentinel_slice.ptr);
 }
+fn some(a: [][:0]const u8) [][*]const u8 {
+    var ret: [][*:0]const u8 = undefined;
+    ret.ptr = @ptrCast(a.ptr);
+    ret.len = a.len;
+
+    for (0..ret.len) |i| {
+        ret[i] = @ptrCast(a[i].ptr);
+    }
+
+    return ret;
+}
+test "append_to_slice" {
+    var x = [_][:0]const u8{ "12", "13" };
+
+    for (some(&x)) |i| {
+        std.debug.print("{any}\n", .{i[1]});
+    }
+}

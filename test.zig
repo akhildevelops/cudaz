@@ -1,6 +1,7 @@
 const Cuda = @import("src/lib.zig");
 const std = @import("std");
 const path = @import("src/path.zig");
+const nvrtc = @cImport(@cInclude("nvrtc.h"));
 test "Setup" {
     const device = try Cuda.Device.default();
     defer device.free();
@@ -65,6 +66,46 @@ test "ptx_file" {
 test "compile_ptx" {
     const file = try std.fs.cwd().openFile("sin.cu", .{});
     const ptx_data = try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
-    std.debug.print("{s}\n", .{ptx_data});
+    // std.debug.print("{s}\n", .{ptx_data});
     std.testing.allocator.free(ptx_data);
+}
+
+test "matmul_kernel" {
+    const cuda_src =
+        \\extern "C" __global__ void matmul(float* A, float* B, float* C, int N) {
+        \\    int ROW = blockIdx.y*blockDim.y+threadIdx.y;
+        \\    int COL = blockIdx.x*blockDim.x+threadIdx.x;
+        \\
+        \\    float tmpSum = 0;
+        \\
+        \\    if (ROW < N && COL < N) {
+        \\        // each thread computes one element of the block sub-matrix
+        \\        for (int i = 0; i < N; i++) {
+        \\            tmpSum += A[ROW * N + i] * B[i * N + COL];
+        \\        }
+        \\    }
+        \\    // printf(\"pos, (%d, %d) - N %d - value %d\\n\", ROW, COL, N, tmpSum);
+        \\    C[ROW * N + COL] = tmpSum;
+        \\ }
+    ;
+    const ptx_data = try Cuda.Compile.cudaText(cuda_src, .{}, std.testing.allocator);
+    defer std.testing.allocator.free(ptx_data);
+    var device = try Cuda.Device.default();
+    defer device.free();
+
+    const module = try Cuda.Device.load_ptx_text(ptx_data);
+    const func = try module.get_func("matmul");
+
+    const a_host = [_]f32{ 1.0, 2.0, 3.0, 4.0 };
+    const b_host = [_]f32{ 1.0, 2.0, 3.0, 4.0 };
+    const c_host = [_]f32{ 0.0, 0.0, 0.0, 0.0 };
+    const a_slice = try device.htod_copy(f32, &a_host);
+    const b_slice = try device.htod_copy(f32, &b_host);
+    var c_slice = try device.htod_copy(f32, &c_host);
+    const cfg = Cuda.LaunchConfig{ .block_dim = .{ 2, 2, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 };
+    var n: i32 = 2;
+    try func.run(.{ &a_slice.device_ptr, &b_slice.device_ptr, &c_slice.device_ptr, &n }, cfg);
+    const arr = try device.sync_reclaim(f32, std.testing.allocator, c_slice);
+    defer arr.deinit();
+    std.debug.print("{any}\n", .{arr.items});
 }

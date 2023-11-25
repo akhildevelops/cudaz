@@ -17,6 +17,14 @@ pub const Device = struct {
         return .{ .cu_module = module };
     }
 
+    pub fn load_ptx_text(
+        ptx: [:0]const u8,
+    ) CudaError.Error!Module {
+        var module: cuda.CUmodule = undefined;
+        try Error.fromCudaErrorCode(cuda.cuModuleLoadData(&module, ptx.ptr));
+        return .{ .cu_module = module };
+    }
+
     pub fn new(gpu: u16) CudaError.Error!Self {
         var device: cuda.CUdevice = undefined;
         var context: cuda.CUcontext = undefined;
