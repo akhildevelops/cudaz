@@ -102,7 +102,7 @@ pub const LaunchConfig = struct {
     const Self = @This();
     pub fn for_num_elems(n: u32) Self {
         const NUM_THREADS: u32 = 1024;
-        var num_blocks = (n + NUM_THREADS - 1) / NUM_THREADS;
+        const num_blocks = (n + NUM_THREADS - 1) / NUM_THREADS;
         return .{
             .grid_dim = .{ num_blocks, 1, 1 },
             .block_dim = .{ NUM_THREADS, 1, 1 },

@@ -61,3 +61,8 @@ test "ptx_file" {
         try std.testing.expect(std.math.approxEqAbs(f32, @sin(float_arr[index]), sin_d.items[index], std.math.floatEps(f32)));
     }
 }
+
+test "compile_ptx" {
+    const file = try std.fs.cwd().openFile("sin.cu", .{});
+    try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
+}
