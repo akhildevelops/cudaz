@@ -1,9 +1,10 @@
-const nvrtc = @cImport(@cInclude("nvrtc.h"));
 const std = @import("std");
+const nvrtc = @import("c.zig").nvrtc;
 const PTX = struct { compiled_code: [][]const u8, allocator: std.mem.Allocator };
 const Path = std.fs.path;
 const Error = @import("error.zig");
 const CompileError = std.mem.Allocator.Error || Error.NvrtcError.Error || std.os.ReadError || error{StreamTooLong};
+
 const Options = struct {
     ftz: ?bool = null,
     prec_sqrt: ?bool = null,

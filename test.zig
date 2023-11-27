@@ -1,7 +1,7 @@
 const Cuda = @import("src/lib.zig");
 const std = @import("std");
 const path = @import("src/path.zig");
-const nvrtc = @cImport(@cInclude("nvrtc.h"));
+
 const time = std.time;
 test "Setup" {
     const device = try Cuda.Device.default();
@@ -32,7 +32,7 @@ test "device_to_host" {
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
 
-// Got segmentation fault because n was declared a  comptime_int construct and after compiling there will be no n, therefore cuda wan't able to fetch the value n.
+// Got segmentation fault because n was declared a  comptime_int construct and after compiling there will be no n, therefore cuda won't able to fetch the value n.
 // Even if n is declared as const param there's seg fault, unless it's declared as var
 test "ptx_file" {
 
@@ -67,24 +67,22 @@ test "ptx_file" {
 test "compile_ptx" {
     const file = try std.fs.cwd().openFile("cuda/sin.cu", .{});
     const ptx_data = try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
-    // std.debug.print("{s}\n", .{ptx_data});
     std.testing.allocator.free(ptx_data);
 }
 
 const cuda_src =
-    \\extern "C" __global__ void matmul(float* A, float* B, float* C, int N) {
+    \\extern "C" __global__ void matmul(float* A, float* B, float* C, const int N) {
     \\    int ROW = blockIdx.y*blockDim.y+threadIdx.y;
     \\    int COL = blockIdx.x*blockDim.x+threadIdx.x;
-    \\
+    \\    
     \\    float tmpSum = 0;
     \\
     \\    if (ROW < N && COL < N) {
-    \\        // each thread computes one element of the block sub-matrix
+    \\        // each thread computes one element of C
     \\        for (int i = 0; i < N; i++) {
     \\            tmpSum += A[ROW * N + i] * B[i * N + COL];
     \\        }
     \\    }
-    \\    // printf(\"pos, (%d, %d) - N %d - value %d\\n\", ROW, COL, N, tmpSum);
     \\    C[ROW * N + COL] = tmpSum;
     \\ }
 ;

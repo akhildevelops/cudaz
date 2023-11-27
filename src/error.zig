@@ -1,8 +1,9 @@
-// const Error = error{generating_cuda_error};
 const std = @import("std");
 const Type = std.builtin.Type;
-const cuda = @import("cuda.zig");
-const nvrtc = @cImport(@cInclude("nvrtc.h"));
+
+const c = @import("c.zig");
+const cuda = c.cuda;
+const nvrtc = c.nvrtc;
 const utils = @import("utils.zig");
 
 const CudaErrorEnum: type = ErrorsToEnum(u32, cuda);
