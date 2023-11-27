@@ -1,33 +1,34 @@
 const Cuda = @import("src/lib.zig");
+const Device = Cuda.Device;
 const std = @import("std");
 const path = @import("src/path.zig");
 
 const time = std.time;
 test "Setup" {
-    const device = try Cuda.Device.default();
+    const device = try Device.default();
     defer device.free();
 }
 
 test "Allocate" {
-    const device = try Cuda.Device.default();
+    const device = try Device.default();
     defer device.free();
     const slice = try device.alloc(f32, 1024 * 1024 * 1024);
     defer slice.free();
 }
 
 test "host_to_device" {
-    const device = try Cuda.Device.default();
+    const device = try Device.default();
     defer device.free();
     const slice = try device.htod_copy(f32, &[_]f32{ 1.2, 3.4, 8.9 });
     defer slice.free();
 }
 
 test "device_to_host" {
-    const device = try Cuda.Device.default();
+    const device = try Device.default();
     defer device.free();
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
     const slice = try device.htod_copy(f32, &float_arr);
-    var arr = try device.sync_reclaim(f32, std.testing.allocator, slice);
+    var arr = try Device.sync_reclaim(f32, std.testing.allocator, slice);
     defer arr.deinit();
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
@@ -37,11 +38,11 @@ test "device_to_host" {
 test "ptx_file" {
 
     // Device Initialization
-    var device = try Cuda.Device.default();
+    var device = try Device.default();
     defer device.free();
 
     //Load module from ptx
-    const module = try Cuda.Device.load_ptx(.{ .raw_path = "cuda/sin.ptx" });
+    const module = try Device.load_ptx(.{ .raw_path = "cuda/sin.ptx" });
     const func = try module.get_func("sin_kernel");
 
     //init variables
@@ -56,7 +57,7 @@ test "ptx_file" {
     // Run the func
     try func.run(.{ &dest_slice.device_ptr, &src_slice.device_ptr, &n }, cfg);
 
-    const sin_d = try device.sync_reclaim(f32, std.testing.allocator, dest_slice);
+    const sin_d = try Device.sync_reclaim(f32, std.testing.allocator, dest_slice);
     defer sin_d.deinit();
 
     for (0..float_arr.len) |index| {
@@ -107,7 +108,7 @@ test "matmul_kernel" {
 
     try func.run(.{ &a_slice.device_ptr, &b_slice.device_ptr, &c_slice.device_ptr, &n }, cfg);
 
-    const arr = try device.sync_reclaim(f32, std.testing.allocator, c_slice);
+    const arr = try Device.sync_reclaim(f32, std.testing.allocator, c_slice);
     defer arr.deinit();
 
     for (arr.items, [_]f32{ 7.0, 10.0, 15.0, 22.0 }) |c, o| {

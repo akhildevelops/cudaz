@@ -67,17 +67,15 @@ pub fn memset_zeros(comptime data_type: type, cuda_slice: CudaSlice(data_type)) 
 pub fn free(self: *const Device) void {
     Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
 }
-pub fn htod_copy_into(self: Device, comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
-    _ = self;
+pub fn htod_copy_into(comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
     try Error.fromCudaErrorCode(cuda.cuMemcpyHtoD_v2(destination.device_ptr, @ptrCast(src), @sizeOf(T) * src.len));
 }
 pub fn htod_copy(self: Device, comptime T: type, src: []const T) CudaError.Error!CudaSlice(T) {
     const slice = try self.alloc(T, src.len);
-    try self.htod_copy_into(T, src, slice);
+    try Device.htod_copy_into(T, src, slice);
     return slice;
 }
-pub fn sync_reclaim(self: Device, comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) !std.ArrayList(T) {
-    _ = self;
+pub fn sync_reclaim(comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) !std.ArrayList(T) {
     var h_Array = try std.ArrayList(T).initCapacity(allocator, slice.len);
     try Error.fromCudaErrorCode(cuda.cuMemcpyDtoH_v2(@ptrCast(h_Array.items), slice.device_ptr, @sizeOf(T) * slice.len));
     // Zig doesn't know the item pointer length, so setting the length of slice.
