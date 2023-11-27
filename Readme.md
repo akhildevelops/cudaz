@@ -2,7 +2,7 @@
 
 This library helps to interact with NVIDIA GPUs from zig. Below is a tiny example for incrementing each value of a zig array parallely on GPU.
 
-
+### Increment Array using GPU
 ```zig
 // Cuda Kernel
 const increment_kernel =
@@ -37,10 +37,12 @@ defer incremented_arr.deinit();
 
 ```
 
-The library provides below features:
+## The library provides below features:
 - Memory Allocation in GPU with defined size.
 - Copying data from host to gpu and viceversa.
 - Compiling (.cu) and loading kernels (.ptx) both from file and text.
 - Running kernels with grid/blocks/threads configuration.
+
+Check [test.zig](./test.zig) file for reference.
 
 Inspired from Rust Cuda library: https://github.com/coreylowman/cudarc/tree/main

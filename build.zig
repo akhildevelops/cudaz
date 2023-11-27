@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
     lib.linkSystemLibrary("nvrtc");
 
     // Installs the artifact into zig-out dir
-    b.installArtifact(lib);
+    // b.installArtifact(lib);
 
     ////////////////////////////////////////////////////////////
     //// Unit Testing
