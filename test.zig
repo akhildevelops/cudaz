@@ -1,34 +1,36 @@
 const Cuda = @import("src/lib.zig");
-const Device = Cuda.Device;
+const CuDevice = Cuda.Device;
+const CuCompile = Cuda.Compile;
+const LaunchConfig = Cuda.LaunchConfig;
 const std = @import("std");
 const path = @import("src/path.zig");
 
 const time = std.time;
 test "Setup" {
-    const device = try Device.default();
+    const device = try CuDevice.default();
     defer device.free();
 }
 
 test "Allocate" {
-    const device = try Device.default();
+    const device = try CuDevice.default();
     defer device.free();
     const slice = try device.alloc(f32, 1024 * 1024 * 1024);
     defer slice.free();
 }
 
 test "host_to_device" {
-    const device = try Device.default();
+    const device = try CuDevice.default();
     defer device.free();
     const slice = try device.htod_copy(f32, &[_]f32{ 1.2, 3.4, 8.9 });
     defer slice.free();
 }
 
 test "device_to_host" {
-    const device = try Device.default();
+    const device = try CuDevice.default();
     defer device.free();
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
     const slice = try device.htod_copy(f32, &float_arr);
-    var arr = try Device.sync_reclaim(f32, std.testing.allocator, slice);
+    var arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, slice);
     defer arr.deinit();
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
@@ -37,12 +39,12 @@ test "device_to_host" {
 // Even if n is declared as const param there's seg fault, unless it's declared as var
 test "ptx_file" {
 
-    // Device Initialization
-    var device = try Device.default();
+    // CuDevice Initialization
+    var device = try CuDevice.default();
     defer device.free();
 
     //Load module from ptx
-    const module = try Device.load_ptx(.{ .raw_path = "cuda/sin.ptx" });
+    const module = try CuDevice.load_ptx(.{ .raw_path = "cuda/sin.ptx" });
     const func = try module.get_func("sin_kernel");
 
     //init variables
@@ -51,13 +53,13 @@ test "ptx_file" {
     var dest_slice = try src_slice.clone();
 
     // Launch config
-    const cfg = Cuda.LaunchConfig.for_num_elems(float_arr.len);
+    const cfg = LaunchConfig.for_num_elems(float_arr.len);
     var n = float_arr.len;
 
     // Run the func
     try func.run(.{ &dest_slice.device_ptr, &src_slice.device_ptr, &n }, cfg);
 
-    const sin_d = try Device.sync_reclaim(f32, std.testing.allocator, dest_slice);
+    const sin_d = try CuDevice.sync_reclaim(f32, std.testing.allocator, dest_slice);
     defer sin_d.deinit();
 
     for (0..float_arr.len) |index| {
@@ -67,7 +69,7 @@ test "ptx_file" {
 
 test "compile_ptx" {
     const file = try std.fs.cwd().openFile("cuda/sin.cu", .{});
-    const ptx_data = try Cuda.Compile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
+    const ptx_data = try CuCompile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
     std.testing.allocator.free(ptx_data);
 }
 
@@ -92,10 +94,10 @@ test "matmul_kernel" {
     const ptx_data = try Cuda.Compile.cudaText(cuda_src, .{}, std.testing.allocator);
     defer std.testing.allocator.free(ptx_data);
 
-    var device = try Cuda.Device.default();
+    var device = try CuDevice.default();
     defer device.free();
 
-    const module = try Cuda.Device.load_ptx_text(ptx_data);
+    const module = try CuDevice.load_ptx_text(ptx_data);
     const func = try module.get_func("matmul");
 
     const a = [_]f32{ 1.0, 2.0, 3.0, 4.0 };
@@ -108,7 +110,7 @@ test "matmul_kernel" {
 
     try func.run(.{ &a_slice.device_ptr, &b_slice.device_ptr, &c_slice.device_ptr, &n }, cfg);
 
-    const arr = try Device.sync_reclaim(f32, std.testing.allocator, c_slice);
+    const arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, c_slice);
     defer arr.deinit();
 
     for (arr.items, [_]f32{ 7.0, 10.0, 15.0, 22.0 }) |c, o| {
