@@ -1,7 +1,7 @@
 const Cuda = @import("src/lib.zig");
 const CuDevice = Cuda.Device;
 const CuCompile = Cuda.Compile;
-const LaunchConfig = Cuda.LaunchConfig;
+const CuLaunchConfig = Cuda.LaunchConfig;
 const std = @import("std");
 const path = @import("src/path.zig");
 
@@ -34,10 +34,35 @@ test "device_to_host" {
     defer arr.deinit();
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
+const increment_kernel =
+    \\extern "C" __global__ void increment(float *out)
+    \\{
+    \\    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    \\    out[i] = out[i] + 1;
+    \\}
+;
+test "inc_file" {
+    const device = try CuDevice.default();
+    defer device.free();
+    const data = [_]f32{ 1.2, 2.8, 0.123 };
+    const cu_slice = try device.htod_copy(f32, &data);
+    defer cu_slice.free();
+    const ptx = try CuCompile.cudaText(increment_kernel, .{}, std.testing.allocator);
+    defer std.testing.allocator.free(ptx);
+    const module = try CuDevice.load_ptx_text(ptx);
+    const function = try module.get_func("increment");
 
+    try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
+
+    const incremented_arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, cu_slice);
+    defer incremented_arr.deinit();
+    for (incremented_arr.items, data) |id, d| {
+        std.debug.assert(id - d == 1);
+    }
+}
 // Got segmentation fault because n was declared a  comptime_int construct and after compiling there will be no n, therefore cuda won't able to fetch the value n.
 // Even if n is declared as const param there's seg fault, unless it's declared as var
-test "ptx_file" {
+test "ptx_sin_file" {
 
     // CuDevice Initialization
     var device = try CuDevice.default();
@@ -53,7 +78,7 @@ test "ptx_file" {
     var dest_slice = try src_slice.clone();
 
     // Launch config
-    const cfg = LaunchConfig.for_num_elems(float_arr.len);
+    const cfg = CuLaunchConfig.for_num_elems(float_arr.len);
     var n = float_arr.len;
 
     // Run the func
