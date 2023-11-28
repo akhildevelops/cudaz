@@ -23,7 +23,7 @@ const cu_slice = try device.htod_copy(f32, &data);
 defer cu_slice.free();
 
 // Compile and load the Kernel
-const ptx = try CuCompile.cudaText(increment, .{}, std.testing.allocator);
+const ptx = try CuCompile.cudaText(increment_kernel, .{}, std.testing.allocator);
 defer std.testing.allocator.free(ptx);
 const module = try CuDevice.load_ptx_text(ptx);
 const function = try module.get_func("increment");
@@ -43,6 +43,6 @@ defer incremented_arr.deinit();
 - Compiling (.cu) and loading kernels (.ptx) both from file and text.
 - Running kernels with grid/blocks/threads configuration.
 
-Check [test.zig](./test.zig) file for reference.
+Check [test.zig](./test.zig) file for code samples.
 
 Inspired from Rust Cuda library: https://github.com/coreylowman/cudarc/tree/main
