@@ -1,9 +1,8 @@
-const Cuda = @import("src/lib.zig");
+const Cuda = @import("cudaz");
 const CuDevice = Cuda.Device;
 const CuCompile = Cuda.Compile;
 const CuLaunchConfig = Cuda.LaunchConfig;
 const std = @import("std");
-const path = @import("src/path.zig");
 
 const time = std.time;
 test "Setup" {
