@@ -1,5 +1,5 @@
 # A Zig Cuda wrapper
-### Works on latest zig nightly
+### Works with latest zig nightly
 This library helps to interact with NVIDIA GPUs from zig. Below is a tiny example for incrementing each value of a zig array parallely on GPU.
 
 ### Increment Array using GPU
@@ -44,8 +44,8 @@ defer incremented_arr.deinit();
 const cudaz_module = b.dependency("cudaz", .{}).module("cudaz");
 exe.addModule("cudaz", cudaz_module);
 ```
-- Start using as `const cudaz = @import(cudaz)`
-- It is intelligent to identify and link to installed cuda libraries. If needed, provide cuda installation path manually through `zig build -DCUDA_PATH=<cuda_folder>`.
+- Start using as `const cudaz = @import("cudaz")`
+- It is intelligent to identify and link to installed cuda libraries. If needed, provide cuda installation path manually by mentioning build parameter `zig build -DCUDA_PATH=<cuda_folder>`.
 
 
 ## The library provides below features:
