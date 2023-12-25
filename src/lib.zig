@@ -4,4 +4,4 @@ pub const LaunchConfig = @import("launchconfig.zig").LaunchConfig;
 pub usingnamespace @import("path.zig");
 
 const Error = @import("error.zig");
-pub const CudaError = Error.CudaError || Error.NvrtcError;
+pub const CudaError = Error.NvrtcError.Error || Error.NvrtcError.Error;
