@@ -25,6 +25,17 @@ pub fn EnumToError(comptime some_type: type) type {
     }
 }
 
+pub const DType = enum(u8) {
+    f16 = 0,
+    f32 = 1,
+    pub fn size(self: DType) usize {
+        return switch (self) {
+            .f16 => @sizeOf(f16),
+            .f32 => @sizeOf(f32),
+        };
+    }
+};
+
 test "enum_to_error" {
     const SomeEnum = enum(u16) { one = 1, thousand = 1000 };
     const error_type = EnumToError(SomeEnum);
