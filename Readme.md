@@ -1,6 +1,6 @@
 # A Zig Cuda wrapper
 ### Works with latest zig nightly
-This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](Readme.md#Customization) to give cuda manual path.
+This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
 
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
