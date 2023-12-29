@@ -14,13 +14,13 @@ primary_context: cuda.CUcontext,
 ordinal: u16,
 const Device = @This();
 
-pub fn load_ptx(file_path: path.PathBuffer) CudaError.Error!Module {
+pub fn loadPtx(file_path: path.PathBuffer) CudaError.Error!Module {
     var module: cuda.CUmodule = undefined;
     try Error.fromCudaErrorCode(cuda.cuModuleLoad(&module, file_path.raw_path.ptr));
     return .{ .cu_module = module };
 }
 
-pub fn load_ptx_text(
+pub fn loadPtxText(
     ptx: [:0]const u8,
 ) CudaError.Error!Module {
     var module: cuda.CUmodule = undefined;
@@ -40,12 +40,6 @@ pub fn new(gpu: u16) CudaError.Error!Device {
         .primary_context = context,
         .ordinal = gpu,
     };
-}
-
-pub fn get_func(self: *const Device, module_name: []const u8, func_name: []const u8) !?CudaFunction {
-    const modules = self.modules orelse return null;
-    var h = modules.get(module_name) orelse return null;
-    return .{ .cu_function = h.get_func(func_name) orelse return null };
 }
 
 pub fn default() CudaError.Error!Device {

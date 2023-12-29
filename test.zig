@@ -48,8 +48,8 @@ test "inc_file" {
     defer cu_slice.free();
     const ptx = try CuCompile.cudaText(increment_kernel, .{}, std.testing.allocator);
     defer std.testing.allocator.free(ptx);
-    const module = try CuDevice.load_ptx_text(ptx);
-    const function = try module.get_func("increment");
+    const module = try CuDevice.loadPtxText(ptx);
+    const function = try module.getFunc("increment");
 
     try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
 
@@ -68,8 +68,8 @@ test "ptx_sin_file" {
     defer device.free();
 
     //Load module from ptx
-    const module = try CuDevice.load_ptx(.{ .raw_path = "cuda/sin.ptx" });
-    const func = try module.get_func("sin_kernel");
+    const module = try CuDevice.loadPtx(.{ .raw_path = "cuda/sin.ptx" });
+    const func = try module.getFunc("sin_kernel");
 
     //init variables
     var float_arr = [_]f32{ 1.57, 0.5236, 0, 1.05 };
@@ -121,8 +121,8 @@ test "matmul_kernel" {
     var device = try CuDevice.default();
     defer device.free();
 
-    const module = try CuDevice.load_ptx_text(ptx_data);
-    const func = try module.get_func("matmul");
+    const module = try CuDevice.loadPtxText(ptx_data);
+    const func = try module.getFunc("matmul");
 
     const a = [_]f32{ 1.0, 2.0, 3.0, 4.0 };
     const a_slice = try device.htodCopy(f32, &a);

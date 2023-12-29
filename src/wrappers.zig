@@ -48,7 +48,7 @@ pub const Function = struct {
 pub const Module = struct {
     cu_module: cuda.CUmodule,
 
-    pub fn get_func(self: @This(), name: []const u8) CudaError.Error!Function {
+    pub fn getFunc(self: @This(), name: []const u8) CudaError.Error!Function {
         var function: cuda.CUfunction = undefined;
         try Error.fromCudaErrorCode(cuda.cuModuleGetFunction(&function, self.cu_module, name.ptr));
         return .{ .cu_func = function };
