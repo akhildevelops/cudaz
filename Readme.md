@@ -98,6 +98,8 @@ pub fn main() !void {
     defer incremented_arr.deinit();
 }
 ```
+For running above code system refer to the example project: [increment](./example/increment)
+
 ## Customization
 - It is intelligent to identify and link to installed cuda libraries. If needed, provide cuda installation path manually by mentioning build parameter `zig build -DCUDA_PATH=<cuda_folder>`.
 
