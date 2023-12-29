@@ -68,7 +68,7 @@ const increment_kernel =
 pub fn main() !void {
     // Initialize allocator
     var GP = std.heap.GeneralPurposeAllocator(.{}){};
-    defer GP.deinit();
+    defer _ = GP.deinit();
     const allocator = GP.allocator();
 
     // Initialize GPU
