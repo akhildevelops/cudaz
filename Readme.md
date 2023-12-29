@@ -12,6 +12,8 @@ Download and save the library path in `build.zig.zon` file by running
 
 Add cudaz module in your project's `build.zig` file that will link to your project's binary.
 ```zig
+//build.zig
+
 const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
@@ -50,6 +52,8 @@ pub fn build(b: *std.Build) !void {
 
 ### Increment Array using GPU
 ```zig
+// src/main.zig
+
 const std = @import("std");
 const Cuda = @import("cudaz");
 const CuDevice = Cuda.Device;
