@@ -4,7 +4,7 @@ const Device = @import("device.zig");
 const Error = @import("error.zig");
 const CudaError = Error.CudaError;
 const CudaFunction = struct { cu_function: cuda.CUfunction };
-
+const DType = @import("utils.zig").DType;
 pub fn CudaSlice(comptime T: type) type {
     return struct {
         device_ptr: cuda.CUdeviceptr,
@@ -21,6 +21,20 @@ pub fn CudaSlice(comptime T: type) type {
         }
     };
 }
+pub const CudaSliceR = struct {
+    device_ptr: cuda.CUdeviceptr,
+    len: usize,
+    device: Device,
+    element_type: DType,
+    pub fn clone(self: *const CudaSliceR) CudaError.Error!CudaSliceR {
+        const c_slice = try self.device.allocR(self.element_type, self.len);
+        try Error.fromCudaErrorCode(cuda.cuMemcpyDtoD_v2(c_slice.device_ptr, self.device_ptr, self.element_type.size() * self.len));
+        return c_slice;
+    }
+    pub fn free(self: CudaSliceR) void {
+        Error.fromCudaErrorCode(cuda.cuMemFree_v2(self.device_ptr)) catch |err| @panic(@errorName(err));
+    }
+};
 
 pub const Function = struct {
     cu_func: cuda.CUfunction,

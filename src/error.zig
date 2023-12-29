@@ -51,6 +51,12 @@ pub fn fromNvrtcErrorCode(error_code: u32) NvrtcError.Error!void {
     return val;
 }
 
+pub fn fromCurandErrorCode(error_code: u32) CurandError.Error!void {
+    if (error_code == 0) return;
+    const val = CurandError.from_error_code(error_code).?;
+    return val;
+}
+
 test "Test_Gen_Errors_Cuda" {
     //zig test error.zig -lcuda -I /usr/local/cuda-12.2/targets/x86_64-linux/include
     const test_cuda_error_enums = ErrorsToEnum(u32, cuda);

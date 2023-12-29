@@ -20,7 +20,7 @@ test "Allocate" {
 test "host_to_device" {
     const device = try CuDevice.default();
     defer device.free();
-    const slice = try device.htod_copy(f32, &[_]f32{ 1.2, 3.4, 8.9 });
+    const slice = try device.htodCopy(f32, &[_]f32{ 1.2, 3.4, 8.9 });
     defer slice.free();
 }
 
@@ -28,8 +28,8 @@ test "device_to_host" {
     const device = try CuDevice.default();
     defer device.free();
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
-    const slice = try device.htod_copy(f32, &float_arr);
-    var arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, slice);
+    const slice = try device.htodCopy(f32, &float_arr);
+    var arr = try CuDevice.syncReclaim(f32, std.testing.allocator, slice);
     defer arr.deinit();
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
@@ -44,7 +44,7 @@ test "inc_file" {
     const device = try CuDevice.default();
     defer device.free();
     const data = [_]f32{ 1.2, 2.8, 0.123 };
-    const cu_slice = try device.htod_copy(f32, &data);
+    const cu_slice = try device.htodCopy(f32, &data);
     defer cu_slice.free();
     const ptx = try CuCompile.cudaText(increment_kernel, .{}, std.testing.allocator);
     defer std.testing.allocator.free(ptx);
@@ -53,7 +53,7 @@ test "inc_file" {
 
     try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
 
-    const incremented_arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, cu_slice);
+    const incremented_arr = try CuDevice.syncReclaim(f32, std.testing.allocator, cu_slice);
     defer incremented_arr.deinit();
     for (incremented_arr.items, data) |id, d| {
         std.debug.assert(id - d == 1);
@@ -73,7 +73,7 @@ test "ptx_sin_file" {
 
     //init variables
     var float_arr = [_]f32{ 1.57, 0.5236, 0, 1.05 };
-    const src_slice = try device.htod_copy(f32, &float_arr);
+    const src_slice = try device.htodCopy(f32, &float_arr);
     var dest_slice = try src_slice.clone();
 
     // Launch config
@@ -83,7 +83,7 @@ test "ptx_sin_file" {
     // Run the func
     try func.run(.{ &dest_slice.device_ptr, &src_slice.device_ptr, &n }, cfg);
 
-    const sin_d = try CuDevice.sync_reclaim(f32, std.testing.allocator, dest_slice);
+    const sin_d = try CuDevice.syncReclaim(f32, std.testing.allocator, dest_slice);
     defer sin_d.deinit();
 
     for (0..float_arr.len) |index| {
@@ -125,7 +125,7 @@ test "matmul_kernel" {
     const func = try module.get_func("matmul");
 
     const a = [_]f32{ 1.0, 2.0, 3.0, 4.0 };
-    const a_slice = try device.htod_copy(f32, &a);
+    const a_slice = try device.htodCopy(f32, &a);
     const b_slice = try a_slice.clone();
     var c_slice = try a_slice.clone();
 
@@ -134,10 +134,17 @@ test "matmul_kernel" {
 
     try func.run(.{ &a_slice.device_ptr, &b_slice.device_ptr, &c_slice.device_ptr, &n }, cfg);
 
-    const arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, c_slice);
+    const arr = try CuDevice.syncReclaim(f32, std.testing.allocator, c_slice);
     defer arr.deinit();
 
     for (arr.items, [_]f32{ 7.0, 10.0, 15.0, 22.0 }) |c, o| {
         try std.testing.expect(std.math.approxEqAbs(f32, c, o, std.math.floatEps(f32)));
     }
 }
+
+// test "runtime_init" {
+//     const device = try CuDevice.default();
+//     defer device.free();
+//     const slice = try device.allocR(Cuda.DType.f16, 10);
+//     slice.free();
+// }

@@ -19,20 +19,20 @@ defer device.free();
 
 // Copy data from host to GPU
 const data = [_]f32{ 1.2, 2.8, 0.123 };
-const cu_slice = try device.htod_copy(f32, &data);
+const cu_slice = try device.htodCopy(f32, &data);
 defer cu_slice.free();
 
 // Compile and load the Kernel
 const ptx = try CuCompile.cudaText(increment_kernel, .{}, std.testing.allocator);
 defer std.testing.allocator.free(ptx);
-const module = try CuDevice.load_ptx_text(ptx);
-const function = try module.get_func("increment");
+const module = try CuDevice.loadPtxText(ptx);
+const function = try module.getFunc("increment");
 
 // Run the kernel on the data
 try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
 
 // Retrieve incremented data back to the system
-const incremented_arr = try CuDevice.sync_reclaim(f32, std.testing.allocator, cu_slice);
+const incremented_arr = try CuDevice.syncReclaim(f32, std.testing.allocator, cu_slice);
 defer incremented_arr.deinit();
 
 ```
