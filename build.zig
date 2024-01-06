@@ -1,6 +1,6 @@
 // Build file to create executables and small util binaries like clean to remove cached-dirs and default artifact folder.
 const std = @import("std");
-
+const utils = @import("test/utils.zig");
 fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
 
     // Return of cuda_parent folder confirms presence of include directory.
@@ -107,31 +107,35 @@ pub fn build(b: *std.Build) !void {
     ////////////////////////////////////////////////////////////
     //// Unit Testing
     // Creates a test binary.
-    const main_tests = b.addTest(.{ .root_source_file = .{ .path = "./test.zig" }, .target = target, .optimize = optimize });
-
-    // Add Module
-    main_tests.addModule("cudaz", cudaz_module);
-    // Link libc
-    main_tests.linkLibC();
-
-    // Path to cuda headers
-    main_tests.addIncludePath(.{ .path = cuda_include_dir });
-
-    inline for (lib_paths) |lib_path| {
-        const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
-        main_tests.addLibraryPath(.{ .path = path });
-    }
-
-    // Link cuda and nvrtc libraries
-    main_tests.linkSystemLibrary("cuda");
-    main_tests.linkSystemLibrary("nvrtc");
-
-    // Creates a run step for test binary
-    const run_main_tests = b.addRunArtifact(main_tests);
-
     // Test step is created to be run from commandline i.e, zig build test
     const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&run_main_tests.step);
+
+    const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
+    var dir_iterator = try test_dir.walk(b.allocator);
+    while (try dir_iterator.next()) |item| {
+        if (item.kind == .file) {
+            const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
+            const sub_test = b.addTest(.{ .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
+            // Add Module
+            sub_test.addModule("cudaz", cudaz_module);
+            // Link libc
+            sub_test.linkLibC();
+
+            // Path to cuda headers
+            sub_test.addIncludePath(.{ .path = cuda_include_dir });
+            inline for (lib_paths) |lib_path| {
+                const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
+                sub_test.addLibraryPath(.{ .path = path });
+            }
+            // Link cuda and nvrtc libraries
+            sub_test.linkSystemLibrary("cuda");
+            sub_test.linkSystemLibrary("nvrtc");
+
+            // Creates a run step for test binary
+            const run_sub_tests = b.addRunArtifact(sub_test);
+            test_step.dependOn(&run_sub_tests.step);
+        }
+    }
 
     ////////////////////////////////////////////////////////////
     //// Clean the cache folders and artifacts
