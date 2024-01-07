@@ -52,33 +52,19 @@ pub fn build(b: *std.Build) !void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    // Create cudaz module
-    const cudaz_module = b.createModule(.{ .source_file = .{ .path = "src/lib.zig" } });
-    try b.modules.put("cudaz", cudaz_module);
-
+    /////////////////////////////////////////////////////////////
+    //// Refer to Cuda path manually during build i.e, -DCUDA_PATH
     const cuda_path = b.option([]const u8, "CUDA_PATH", "locally installed Cuda's path");
 
+    /////////////////////////////////////////////////////////////
+    //// Get Cuda paths
     const cuda_folder = try getCudaPath(cuda_path, b.allocator);
-
     const cuda_include_dir = try std.fmt.allocPrint(b.allocator, "{s}/include", .{cuda_folder});
 
-    // const HEADER_FILES = std.ComptimeStringMap([]const u8, .{.{ "cuda", "/usr/local/cuda/targets/x86_64-linux/include" }});
-
     ////////////////////////////////////////////////////////////
-    //// Static Library
-    // Creates a compile step to create static cudaz library
-    const lib = b.addStaticLibrary(.{
-        .name = "cudaz",
-        .root_source_file = .{ .path = "src/lib.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // Links libc for dynamic loading
-    lib.linkLibC();
-
-    // Path to cuda headers
-    lib.addIncludePath(.{ .path = cuda_include_dir });
+    //// CudaZ Module
+    const cudaz_module = b.createModule(.{ .root_source_file = .{ .path = "src/lib.zig" } });
+    cudaz_module.addIncludePath(.{ .path = cuda_include_dir });
 
     const lib_paths = [_][]const u8{
         "lib",
@@ -92,17 +78,11 @@ pub fn build(b: *std.Build) !void {
         "targets/x86_64-linux/lib",
         "targets/x86_64-linux/lib/stubs",
     };
+
     inline for (lib_paths) |lib_path| {
         const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
-        lib.addLibraryPath(.{ .path = path });
+        cudaz_module.addLibraryPath(.{ .path = path });
     }
-
-    // Link cuda and nvrtc libraries
-    lib.linkSystemLibrary("cuda");
-    lib.linkSystemLibrary("nvrtc");
-
-    // Installs the artifact into zig-out dir
-    b.installArtifact(lib);
 
     ////////////////////////////////////////////////////////////
     //// Unit Testing
@@ -115,24 +95,22 @@ pub fn build(b: *std.Build) !void {
     while (try dir_iterator.next()) |item| {
         if (item.kind == .file) {
             const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-            const sub_test = b.addTest(.{ .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
+            const sub_test = b.addTest(.{ .name = item.path, .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
             // Add Module
-            sub_test.addModule("cudaz", cudaz_module);
-            // Link libc
-            sub_test.linkLibC();
+            sub_test.root_module.addImport("cudaz", cudaz_module);
 
-            // Path to cuda headers
-            sub_test.addIncludePath(.{ .path = cuda_include_dir });
-            inline for (lib_paths) |lib_path| {
-                const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
-                sub_test.addLibraryPath(.{ .path = path });
-            }
-            // Link cuda and nvrtc libraries
+            // Link libc, cuda and nvrtc libraries
+            sub_test.linkLibC();
             sub_test.linkSystemLibrary("cuda");
             sub_test.linkSystemLibrary("nvrtc");
 
             // Creates a run step for test binary
             const run_sub_tests = b.addRunArtifact(sub_test);
+
+            const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.path[0 .. item.path.len - 4]});
+            // Create a test_step name
+            const ind_test_step = b.step(test_name, "Individual Test");
+            ind_test_step.dependOn(&run_sub_tests.step);
             test_step.dependOn(&run_sub_tests.step);
         }
     }
