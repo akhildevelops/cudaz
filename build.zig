@@ -1,6 +1,7 @@
 // Build file to create executables and small util binaries like clean to remove cached-dirs and default artifact folder.
 const std = @import("std");
 const utils = @import("test/utils.zig");
+
 fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
 
     // Return of cuda_parent folder confirms presence of include directory.
@@ -64,6 +65,7 @@ pub fn build(b: *std.Build) !void {
     ////////////////////////////////////////////////////////////
     //// CudaZ Module
     const cudaz_module = b.createModule(.{ .root_source_file = .{ .path = "src/lib.zig" } });
+    try b.modules.put("cudaz", cudaz_module);
     cudaz_module.addIncludePath(.{ .path = cuda_include_dir });
 
     const lib_paths = [_][]const u8{
@@ -88,30 +90,44 @@ pub fn build(b: *std.Build) !void {
     //// Unit Testing
     // Creates a test binary.
     // Test step is created to be run from commandline i.e, zig build test
-    const test_step = b.step("test", "Run library tests");
+    test_blk: {
+        const test_file = std.fs.cwd().openFile("build.zig.zon", .{}) catch {
+            break :test_blk;
+        };
+        defer test_file.close();
 
-    const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
-    var dir_iterator = try test_dir.walk(b.allocator);
-    while (try dir_iterator.next()) |item| {
-        if (item.kind == .file) {
-            const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-            const sub_test = b.addTest(.{ .name = item.path, .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
-            // Add Module
-            sub_test.root_module.addImport("cudaz", cudaz_module);
+        const test_file_contents = try test_file.readToEndAlloc(b.allocator, std.math.maxInt(usize));
+        defer b.allocator.free(test_file_contents);
 
-            // Link libc, cuda and nvrtc libraries
-            sub_test.linkLibC();
-            sub_test.linkSystemLibrary("cuda");
-            sub_test.linkSystemLibrary("nvrtc");
+        // Hack for identifying if the current root is cudaz project, if not don't register tests.
+        if (std.mem.indexOf(u8, test_file_contents, ".name = \"cudaz\"") == null) {
+            break :test_blk;
+        }
 
-            // Creates a run step for test binary
-            const run_sub_tests = b.addRunArtifact(sub_test);
+        const test_step = b.step("test", "Run library tests");
+        const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
+        var dir_iterator = try test_dir.walk(b.allocator);
+        while (try dir_iterator.next()) |item| {
+            if (item.kind == .file) {
+                const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
+                const sub_test = b.addTest(.{ .name = item.path, .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
+                // Add Module
+                sub_test.root_module.addImport("cudaz", cudaz_module);
 
-            const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.path[0 .. item.path.len - 4]});
-            // Create a test_step name
-            const ind_test_step = b.step(test_name, "Individual Test");
-            ind_test_step.dependOn(&run_sub_tests.step);
-            test_step.dependOn(&run_sub_tests.step);
+                // Link libc, cuda and nvrtc libraries
+                sub_test.linkLibC();
+                sub_test.linkSystemLibrary("cuda");
+                sub_test.linkSystemLibrary("nvrtc");
+
+                // Creates a run step for test binary
+                const run_sub_tests = b.addRunArtifact(sub_test);
+
+                const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.path[0 .. item.path.len - 4]});
+                // Create a test_step name
+                const ind_test_step = b.step(test_name, "Individual Test");
+                ind_test_step.dependOn(&run_sub_tests.step);
+                test_step.dependOn(&run_sub_tests.step);
+            }
         }
     }
 
