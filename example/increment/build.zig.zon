@@ -17,7 +17,7 @@
     .dependencies = .{
         .cudaz = .{
             .url = "https://github.com/akhildevelops/cudaz/tarball/master",
-            .hash = "122081370b05d9b09c8b8870f9a7c8c1300ad559030f5392bb33baffb63d0421a844",
+            .hash = "1220c2a2c5d5d5672db992c837833bcc51a766c933b876c1b9e635baba5303b4b87d",
         },
     },
     .paths = .{
