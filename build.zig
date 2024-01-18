@@ -64,8 +64,7 @@ pub fn build(b: *std.Build) !void {
 
     ////////////////////////////////////////////////////////////
     //// CudaZ Module
-    const cudaz_module = b.createModule(.{ .root_source_file = .{ .path = "src/lib.zig" } });
-    try b.modules.put("cudaz", cudaz_module);
+    const cudaz_module = b.addModule("cudaz", .{ .root_source_file = .{ .path = "src/lib.zig" } });
     cudaz_module.addIncludePath(.{ .path = cuda_include_dir });
 
     const lib_paths = [_][]const u8{
