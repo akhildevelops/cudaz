@@ -117,6 +117,7 @@ pub fn build(b: *std.Build) !void {
                 sub_test.linkLibC();
                 sub_test.linkSystemLibrary("cuda");
                 sub_test.linkSystemLibrary("nvrtc");
+                sub_test.linkSystemLibrary("curand");
 
                 // Creates a run step for test binary
                 const run_sub_tests = b.addRunArtifact(sub_test);
