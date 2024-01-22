@@ -6,6 +6,6 @@ pub const Compile = @import("compile.zig");
 pub const LaunchConfig = @import("launchconfig.zig").LaunchConfig;
 pub const CAPI = @import("c.zig");
 pub usingnamespace @import("path.zig");
-
+pub const Rng = @import("rng.zig");
 const Error = @import("error.zig");
 pub const CudaError = Error.CurandError.Error || Error.NvrtcError.Error || Error.NvrtcError.Error;

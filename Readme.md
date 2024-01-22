@@ -38,7 +38,6 @@ pub fn build(b: *std.Build) !void {
 }
 
 
-
 ```
 
 ### Increment Array using GPU
@@ -100,6 +99,7 @@ For running above code system refer to the example project: [increment](./exampl
 - Copying data from host to gpu and viceversa.
 - Compiling (.cu) and loading kernels (.ptx) both from file and text.
 - Running kernels with grid/blocks/threads configuration.
+- [Generate random numbers](test/rng.zig)
 
 Check [test.zig](./test.zig) file for code samples.
 

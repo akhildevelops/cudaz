@@ -28,12 +28,3 @@ pub fn genrandom(self: @This(), size: usize) !CudaSlice(f32) {
     try Error.fromCurandErrorCode(c.curand.curandGenerateUniform(self.rng, slice_ptr, size));
     return .{ .device_ptr = @intFromPtr(slice_ptr), .len = size, .device = self.device };
 }
-
-test "curand" {
-    const curand = try default();
-    const slice = try curand.genrandom(10);
-    defer slice.free();
-    const arr = try Device.syncReclaim(f32, std.testing.allocator, slice);
-    defer arr.deinit();
-    std.debug.print("{d}\n", .{arr.items[0]});
-}
