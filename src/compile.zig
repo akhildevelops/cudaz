@@ -74,7 +74,20 @@ pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.me
     for (params_own, cparams) |p, *cp| {
         cp.* = p.ptr;
     }
-    try Error.fromNvrtcErrorCode(nvrtc.nvrtcCompileProgram(prg, std.math.cast(c_int, cparams.len).?, cparams.ptr));
+    Error.fromNvrtcErrorCode(nvrtc.nvrtcCompileProgram(prg, std.math.cast(c_int, cparams.len).?, cparams.ptr)) catch |e| {
+        switch (e) {
+            error.NVRTC_ERROR_COMPILATION => {
+                var log_size: usize = undefined;
+                try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetProgramLogSize(prg, &log_size));
+                const log_msg = try allocator.allocSentinel(u8, log_size, '0');
+                try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetProgramLog(prg, log_msg.ptr));
+                std.debug.print("{s}\n", .{log_msg});
+                allocator.free(log_msg);
+            },
+            else => return e,
+        }
+    };
+    return {};
 }
 
 pub fn getPtx(prg: nvrtc.nvrtcProgram, allocator: std.mem.Allocator) CompileError![:0]const u8 {
