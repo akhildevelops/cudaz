@@ -9,11 +9,9 @@ fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
         if (path) |parent| {
             const cuda_file = try std.fmt.allocPrint(allocator, "{s}/include/cuda.h", .{parent});
             defer allocator.free(cuda_file);
-            _ = std.fs.openDirAbsolute(cuda_file, .{}) catch |e| {
+            _ = std.fs.openFileAbsolute(cuda_file, .{}) catch |e| {
                 switch (e) {
-                    std.fs.File.OpenError.FileNotFound => {
-                        return error.CUDA_INSTALLATION_NOT_FOUND;
-                    },
+                    std.fs.File.OpenError.FileNotFound => return error.CUDA_INSTALLATION_NOT_FOUND,
                     else => return e,
                 }
             };
