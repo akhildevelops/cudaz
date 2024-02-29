@@ -53,7 +53,9 @@ pub fn build(b: *std.Build) !void {
 
     /////////////////////////////////////////////////////////////
     //// Refer to Cuda path manually during build i.e, -DCUDA_PATH
-    const cuda_path = b.option([]const u8, "CUDA_PATH", "locally installed Cuda's path");
+    const cuda_path =
+        b.option([]const u8, "CUDA_PATH", "locally installed Cuda's path") orelse
+        try std.process.getEnvVarOwned(b.allocator, "CUDA_PATH");
 
     /////////////////////////////////////////////////////////////
     //// Get Cuda paths

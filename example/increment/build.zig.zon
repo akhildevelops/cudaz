@@ -16,8 +16,9 @@
     // internet connectivity.
     .dependencies = .{
         .cudaz = .{
-            .url = "https://github.com/akhildevelops/cudaz/tarball/main",
-            .hash = "122042f55e5b492702d91ac0c09f0d74c7a1842a19ef2e75c1a833d64df51a0be9eb",
+            // .url = "https://github.com/DanikVitek/cudaz/tarball/main",
+            // .hash = "12207c8be3e4fa2cec0a24ab820b431ca9a6ccc484987d751d354ad6a58df97f6802",
+            .path = "../../",
         },
     },
     .paths = .{
