@@ -54,9 +54,7 @@ pub fn build(b: *std.Build) !void {
 
     /////////////////////////////////////////////////////////////
     //// Refer to Cuda path manually during build i.e, -DCUDA_PATH
-    const cuda_path =
-        b.option([]const u8, "CUDA_PATH", "locally installed Cuda's path") orelse
-        try getCudaPathEnvVar(b.allocator);
+    const cuda_path = b.option([]const u8, "CUDA_PATH", "locally installed Cuda's path");
 
     /////////////////////////////////////////////////////////////
     //// Get Cuda paths
@@ -145,11 +143,4 @@ pub fn build(b: *std.Build) !void {
     // Register clean command i.e, zig build clean to cleanup any artifacts and cache
     const clean_cmd = b.step("clean", "Cleans the cache folders");
     clean_cmd.dependOn(&clean_step.step);
-}
-
-fn getCudaPathEnvVar(allocator: std.mem.Allocator) !?[]const u8 {
-    return std.process.getEnvVarOwned(allocator, "CUDA_PATH") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => null,
-        else => return err,
-    };
 }

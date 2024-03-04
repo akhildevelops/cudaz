@@ -5,7 +5,10 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{ .name = "main", .root_source_file = .{ .path = "src/main.zig" }, .target = b.host });
 
     // Point to cudaz dependency
-    const cudaz_dep = b.dependency("cudaz", .{});
+    const cudaz_dep = b.dependency(
+        "cudaz",
+        .{}, // replace with `.{ .CUDA_PATH = @as([]const u8, "<your cuda path>") }` to specify custom CUDA_PATH
+    );
 
     // Fetch and add the module from cudaz dependency
     const cudaz_module = cudaz_dep.module("cudaz");
