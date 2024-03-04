@@ -5,13 +5,7 @@ const CuCompile = Cuda.Compile;
 const CuLaunchConfig = Cuda.LaunchConfig;
 
 // Cuda Kernel
-const increment_kernel =
-    \\extern "C" __global__ void increment(float *out)
-    \\{
-    \\    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    \\    out[i] = out[i] + 1;
-    \\}
-;
+const increment_kernel = @embedFile("./increment.cu");
 
 pub fn main() !void {
     // Initialize allocator
@@ -31,6 +25,7 @@ pub fn main() !void {
     std.debug.print("Copied array {d:.3} from system to GPU\n", .{data});
 
     // Compile and load the Kernel
+    std.debug.print("Kernel program:\n{s}\n\n", .{increment_kernel});
     const ptx = try CuCompile.cudaText(increment_kernel, .{}, allocator);
     defer allocator.free(ptx);
     const module = try CuDevice.loadPtxText(ptx);
