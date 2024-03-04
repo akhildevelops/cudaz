@@ -23,6 +23,7 @@ fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
                 "/usr/local/cuda",
                 "/opt/cuda",
                 "/usr/lib/cuda",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3",
             };
             inline for (probable_roots) |parent| h: {
                 const cuda_file = parent ++ "/include/cuda.h";
