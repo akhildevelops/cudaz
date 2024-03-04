@@ -16,7 +16,7 @@
     // internet connectivity.
     .dependencies = .{
         .cudaz = .{
-            // .url = "https://github.com/DanikVitek/cudaz/tarball/main",
+            // .url = "https://github.com/akhildevelops/cudaz/tarball/main",
             // .hash = "12207c8be3e4fa2cec0a24ab820b431ca9a6ccc484987d751d354ad6a58df97f6802",
             .path = "../../",
         },
