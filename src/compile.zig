@@ -46,7 +46,7 @@ const Options = struct {
 };
 pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
     var program: nvrtc.nvrtcProgram = undefined;
-    try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, cuda_text.ptr, undefined, 0, undefined, undefined));
+    try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, cuda_text.ptr, null, 0, null, null));
     try cudaProgram(program, options, allocator);
     const ptx_data = try getPtx(program, allocator);
     return ptx_data;
