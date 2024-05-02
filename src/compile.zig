@@ -3,7 +3,7 @@ const nvrtc = @import("c.zig").nvrtc;
 const PTX = struct { compiled_code: [][]const u8, allocator: std.mem.Allocator };
 const Path = std.fs.path;
 const Error = @import("error.zig");
-const CompileError = std.mem.Allocator.Error || Error.NvrtcError.Error || std.os.ReadError || error{StreamTooLong};
+const CompileError = std.mem.Allocator.Error || Error.NvrtcError.Error || error{StreamTooLong};
 
 const Options = struct {
     ftz: ?bool = null,
@@ -51,7 +51,7 @@ pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.A
     const ptx_data = try getPtx(program, allocator);
     return ptx_data;
 }
-pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
+pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![:0]const u8 {
     var data = std.ArrayList(u8).init(allocator);
     try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));
     const data_sentinel = try data.toOwnedSliceSentinel(0);

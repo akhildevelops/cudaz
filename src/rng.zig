@@ -24,7 +24,7 @@ pub fn init(device: Device, seed: ?u64) !@This() {
 
 pub fn genrandom(self: @This(), size: usize) !CudaSlice(f32) {
     var slice_ptr: *f32 = undefined;
-    try Error.fromCurandErrorCode(c.curand.cudaMalloc(@ptrCast(&slice_ptr), @sizeOf(f32) * size));
+    try Error.fromCurandErrorCode(c.cuda_runtime.cudaMalloc(@ptrCast(&slice_ptr), @sizeOf(f32) * size));
     try Error.fromCurandErrorCode(c.curand.curandGenerateUniform(self.rng, slice_ptr, size));
     return .{ .device_ptr = @intFromPtr(slice_ptr), .len = size, .device = self.device };
 }
