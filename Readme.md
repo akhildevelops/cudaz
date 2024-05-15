@@ -3,6 +3,15 @@
 ### Works with latest zig v0.12.0
 This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
 
+## The library provides below features:
+- Memory Allocation in GPU with defined size.
+- Copying data from host to gpu and viceversa.
+- Compiling (.cu) and loading kernels (.ptx) both from file and text.
+- Running kernels with grid/blocks/threads configuration.
+- [Generate random numbers](test/rng.zig)
+
+Check [test.zig](./test.zig) file for code samples.
+
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
 ### Install
@@ -91,17 +100,11 @@ pub fn main() !void {
 ```
 For running above code system refer to the example project: [increment](./example/increment)
 
+## Examples:
+- [Incrementing array in GPU](example/increment/)
+- [Sending Custom Types to GPU](example/custom_type/)
+
 ## Customization
 - It is intelligent to identify and link to installed cuda libraries. If needed, provide cuda installation path manually by mentioning build parameter `zig build -DCUDA_PATH=<cuda_folder>`.
-
-
-## The library provides below features:
-- Memory Allocation in GPU with defined size.
-- Copying data from host to gpu and viceversa.
-- Compiling (.cu) and loading kernels (.ptx) both from file and text.
-- Running kernels with grid/blocks/threads configuration.
-- [Generate random numbers](test/rng.zig)
-
-Check [test.zig](./test.zig) file for code samples.
 
 Inspired from Rust Cuda library: https://github.com/coreylowman/cudarc/tree/main
