@@ -63,8 +63,8 @@ pub fn build(b: *std.Build) !void {
 
     ////////////////////////////////////////////////////////////
     //// CudaZ Module
-    const cudaz_module = b.addModule("cudaz", .{ .root_source_file = .{ .path = "src/lib.zig" } });
-    cudaz_module.addIncludePath(.{ .path = cuda_include_dir });
+    const cudaz_module = b.addModule("cudaz", .{ .root_source_file = b.path("./src/lib.zig") });
+    cudaz_module.addIncludePath(.{ .cwd_relative = cuda_include_dir });
 
     const lib_paths = [_][]const u8{
         "lib",
@@ -81,7 +81,7 @@ pub fn build(b: *std.Build) !void {
 
     inline for (lib_paths) |lib_path| {
         const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
-        cudaz_module.addLibraryPath(.{ .path = path });
+        cudaz_module.addLibraryPath(.{ .cwd_relative = path });
     }
 
     ////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ pub fn build(b: *std.Build) !void {
         while (try dir_iterator.next()) |item| {
             if (item.kind == .file) {
                 const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-                const sub_test = b.addTest(.{ .name = item.path, .root_source_file = .{ .path = test_path }, .target = target, .optimize = optimize });
+                const sub_test = b.addTest(.{ .name = item.path, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
                 // Add Module
                 sub_test.root_module.addImport("cudaz", cudaz_module);
 
@@ -135,7 +135,7 @@ pub fn build(b: *std.Build) !void {
     //// Clean the cache folders and artifacts
 
     // Creates a binary that cleans up zig artifact folders
-    const clean = b.addExecutable(.{ .name = "clean", .root_source_file = .{ .path = "bin/delete-zig-cache.zig" }, .target = target, .optimize = optimize });
+    const clean = b.addExecutable(.{ .name = "clean", .root_source_file = b.path("bin/delete-zig-cache.zig"), .target = target, .optimize = optimize });
 
     // Creates a run step
     const clean_step = b.addRunArtifact(clean);
