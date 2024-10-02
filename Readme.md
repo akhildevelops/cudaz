@@ -1,5 +1,5 @@
 ![AI Generated](cuda_zig.jpeg)
-# A Zig Cuda wrapper
+# Cuda library for Zig
 ### Works with latest zig v0.12.0
 This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
 
