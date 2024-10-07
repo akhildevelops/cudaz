@@ -2,8 +2,8 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
     // exe points to main.zig that uses cudaz
-    const exe = b.addExecutable(.{ .name = "main", .root_source_file = .{ .path = "src/main.zig" }, .target = b.host });
-    exe.addIncludePath(.{ .path = "c" });
+    const exe = b.addExecutable(.{ .name = "main", .root_source_file = b.path("src/main.zig"), .target = b.host });
+    exe.addIncludePath(b.path("c"));
     // Point to cudaz dependency
     const cudaz_dep = b.dependency(
         "cudaz",
