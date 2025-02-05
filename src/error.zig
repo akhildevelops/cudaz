@@ -22,7 +22,7 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
         else => @compileError("Can either be cuda / nvrtc type"),
     };
     switch (@typeInfo(cimport)) {
-        .Struct => |x| {
+        .@"struct" => |x| {
             const null_decls: []const Type.Declaration = &.{};
             var errors: [100]Type.EnumField = undefined;
             var counter: usize = 0;
@@ -34,7 +34,7 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
                 }
             }
 
-            return @Type(Type{ .Enum = .{ .tag_type = tag_type, .fields = errors[0..counter], .decls = null_decls, .is_exhaustive = false } });
+            return @Type(Type{ .@"enum" = .{ .tag_type = tag_type, .fields = errors[0..counter], .decls = null_decls, .is_exhaustive = false } });
         },
         else => @compileError("Cannot generate error type"),
     }
