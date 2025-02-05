@@ -3,6 +3,8 @@
 ### Works with zig master branch
 This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
 
+#### Check [main](https://github.com/akhildevelops/cudaz/tree/main) branch for compatibility with current zig stable version.
+
 ## The library provides below features:
 - Memory Allocation in GPU with defined size.
 - Copying data from host to gpu and viceversa.
