@@ -10,7 +10,7 @@ This library helps to interact with NVIDIA GPUs from zig. Provides high level in
 - Running kernels with grid/blocks/threads configuration.
 - [Generate random numbers](test/rng.zig)
 
-Check [test.zig](./test.zig) file for code samples.
+Check [test](./test) folder for code samples.
 
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
