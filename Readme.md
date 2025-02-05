@@ -1,9 +1,6 @@
 ![AI Generated](cuda_zig.jpeg)
 # Cuda library for Zig
-### Works with latest zig v0.13.0
 This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
-
-#### Check [zig-master](https://github.com/akhildevelops/cudaz/tree/zig-master) branch for compatibility with latest master branch of zig.
 
 ## The library provides below features:
 - Memory Allocation in GPU with defined size.
@@ -17,9 +14,12 @@ Check [test.zig](./test.zig) file for code samples.
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
 ### Install
-
 Download and save the library path in `build.zig.zon` file by running
 
+#### If using zig 0.13.0
+`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.1.0.tar.gz`
+
+#### If using zig master
 `zig fetch --save https://github.com/akhildevelops/cudaz/tarball/master`
 
 Add cudaz module in your project's `build.zig` file that will link to your project's binary.
