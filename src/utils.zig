@@ -2,17 +2,17 @@ const std = @import("std");
 const Type = std.builtin.Type;
 pub fn EnumToError(comptime some_type: type) type {
     switch (@typeInfo(some_type)) {
-        .Enum => |enum_type| {
+        .@"enum" => |enum_type| {
             var error_names: [enum_type.fields.len]Type.Error = undefined;
             for (enum_type.fields, 0..) |field, index| {
                 error_names[index] = .{ .name = field.name };
             }
-            const error_type = @Type(std.builtin.Type{ .ErrorSet = &error_names });
+            const error_type = @Type(std.builtin.Type{ .error_set = &error_names });
             return struct {
                 pub const Error: type = error_type;
                 pub fn from_error_code(x: enum_type.tag_type) ?error_type {
                     const enum_val: some_type = @enumFromInt(x);
-                    inline for (@typeInfo(error_type).ErrorSet orelse unreachable) |error_val| {
+                    inline for (@typeInfo(error_type).error_set orelse unreachable) |error_val| {
                         if (std.mem.eql(u8, error_val.name, @tagName(enum_val))) {
                             return @field(error_type, error_val.name);
                         }

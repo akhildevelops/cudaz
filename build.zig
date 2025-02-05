@@ -79,8 +79,11 @@ pub fn build(b: *std.Build) !void {
         "targets/x86_64-linux/lib/stubs",
     };
 
-    inline for (lib_paths) |lib_path| {
+    inline for (lib_paths) |lib_path| h: {
         const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
+        _ = std.fs.openDirAbsolute(path, .{}) catch {
+            break :h;
+        };
         cudaz_module.addLibraryPath(.{ .cwd_relative = path });
     }
 
