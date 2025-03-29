@@ -101,7 +101,7 @@ pub fn build(b: *std.Build) !void {
         defer b.allocator.free(test_file_contents);
 
         // Hack for identifying if the current root is cudaz project, if not don't register tests.
-        if (std.mem.indexOf(u8, test_file_contents, ".name = \"cudaz\"") == null) {
+        if (std.mem.indexOf(u8, test_file_contents, ".name = .cudaz") == null) {
             break :test_blk;
         }
 
