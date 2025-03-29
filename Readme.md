@@ -17,11 +17,12 @@ Check [test](./test) folder for code samples.
 ### Install
 Download and save the library path in `build.zig.zon` file by running
 
-#### If using zig 0.13.0
+#### zig 0.14.0
+`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.2.0.tar.gz`
+
+#### zig 0.13.0
 `zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.1.0.tar.gz`
 
-#### If using zig master
-`zig fetch --save https://github.com/akhildevelops/cudaz/tarball/master`
 
 Add cudaz module in your project's `build.zig` file that will link to your project's binary.
 ```zig
