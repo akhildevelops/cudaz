@@ -78,12 +78,22 @@ pub fn free(self: *const Device) void {
     Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
 }
 pub fn htodCopyInto(comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
+    std.debug.assert(src.len == destination.len);
     try Error.fromCudaErrorCode(cuda.cuMemcpyHtoD_v2(destination.device_ptr, @ptrCast(src), @sizeOf(T) * src.len));
 }
 pub fn htodCopy(self: Device, comptime T: type, src: []const T) CudaError.Error!CudaSlice(T) {
     const slice = try self.alloc(T, src.len);
     try Device.htodCopyInto(T, src, slice);
     return slice;
+}
+pub fn dtohCopyInto(comptime T: type, src: CudaSlice(T), destination: []T) CudaError.Error!void {
+    std.debug.assert(src.len == destination.len);
+    try Error.fromCudaErrorCode(cuda.cuMemcpyDtoH_v2(@ptrCast(destination), src.device_ptr, @sizeOf(T) * src.len));
+}
+pub fn dtohCopy(comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) ![]T {
+    const host_buf: []T = try allocator.alloc(T, slice.len);
+    try dtohCopyInto(T, slice, host_buf);
+    return host_buf;
 }
 pub fn syncReclaim(comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) !std.ArrayList(T) {
     var h_Array = try std.ArrayList(T).initCapacity(allocator, slice.len);
