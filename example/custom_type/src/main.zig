@@ -17,7 +17,7 @@ pub fn main() !void {
 
     // Initialize GPU
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     std.debug.print("Cuda device is setup\n", .{});
 
     // Initialize host data with a custom data type
