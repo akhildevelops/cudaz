@@ -39,7 +39,7 @@ pub const CudaSliceR = struct {
 pub const Function = struct {
     cu_func: cuda.CUfunction,
     pub fn run(self: @This(), params: anytype, cfg: LaunchConfig) CudaError.Error!void {
-        if (@typeInfo(@TypeOf(params)) != .@"struct") return error.params_not_struct;
+        if (@typeInfo(@TypeOf(params)) != .@"struct") @compileError("Invalid params type, must be a struct");
         var e_params: ?*u32 = null;
         try Error.fromCudaErrorCode(cuda.cuLaunchKernel(self.cu_func, cfg.grid_dim[0], cfg.grid_dim[1], cfg.grid_dim[2], cfg.block_dim[0], cfg.block_dim[1], cfg.block_dim[2], cfg.shared_mem_bytes, null, @ptrCast(@constCast(&params)), @ptrCast(&e_params)));
     }
