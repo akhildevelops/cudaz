@@ -15,7 +15,7 @@ pub fn main() !void {
     std.debug.print("Initialized allocator\n", .{});
     // Initialize GPU
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     std.debug.print("Cuda device is setup\n", .{});
 
     // Copy data from host to GPU

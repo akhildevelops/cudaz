@@ -74,7 +74,10 @@ pub fn memsetZeros(comptime data_type: type, cuda_slice: CudaSlice(data_type)) C
 pub fn memsetZerosR(dtype: DType, cuda_slice: CudaSliceR) CudaError.Error!void {
     try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * dtype.size()));
 }
-pub fn free(self: *const Device) void {
+pub fn free(ptr: cuda.CUdeviceptr) !void {
+    try Error.fromCudaErrorCode(cuda.cuMemFree_v2(ptr));
+}
+pub fn deinit(self: *const Device) void {
     Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
 }
 pub fn htodCopyInto(comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {

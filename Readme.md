@@ -81,7 +81,7 @@ pub fn main() !void {
 
     // Initialize GPU
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 
     // Copy data from host to GPU
     const data = [_]f32{ 1.2, 2.8, 0.123 };
