@@ -7,26 +7,26 @@ const std = @import("std");
 const time = std.time;
 test "Setup" {
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 }
 
 test "Allocate" {
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     const slice = try device.alloc(f32, 1024 * 1024 * 1024);
     defer slice.free();
 }
 
 test "host_to_device" {
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     const slice = try device.htodCopy(f32, &[_]f32{ 1.2, 3.4, 8.9 });
     defer slice.free();
 }
 
 test "device_to_host" {
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
     const slice = try device.htodCopy(f32, &float_arr);
     var arr = try CuDevice.syncReclaim(f32, std.testing.allocator, slice);
@@ -42,7 +42,7 @@ const increment_kernel =
 ;
 test "inc_file" {
     const device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
     const data = [_]f32{ 1.2, 2.8, 0.123 };
     const cu_slice = try device.htodCopy(f32, &data);
     defer cu_slice.free();
@@ -65,7 +65,7 @@ test "ptx_sin_file" {
 
     // CuDevice Initialization
     var device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 
     //Load module from ptx
     const module = try CuDevice.loadPtx(.{ .raw_path = "cuda/sin.ptx" });
@@ -119,7 +119,7 @@ test "matmul_kernel" {
     defer std.testing.allocator.free(ptx_data);
 
     var device = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 
     const module = try CuDevice.loadPtxText(ptx_data);
     const func = try module.getFunc("matmul");
@@ -144,7 +144,7 @@ test "matmul_kernel" {
 
 // test "runtime_init" {
 //     const device = try CuDevice.default();
-//     defer device.free();
+//     defer device.deinit();
 //     const slice = try device.allocR(Cuda.DType.f16, 10);
 //     slice.free();
 // }
