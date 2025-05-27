@@ -25,6 +25,25 @@ test "host_to_device" {
 }
 
 test "device_to_host" {
+    const device: CuDevice = try CuDevice.default();
+    defer device.free();
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const init_arr = &[_]f32{ 1.2, 3.4, 8.9 };
+
+    const slice = try device.htodCopy(f32, init_arr);
+    defer slice.free();
+
+    const final_arr = try CuDevice.dtohCopy(f32, allocator, slice);
+    defer allocator.free(final_arr);
+
+    try std.testing.expect(std.mem.eql(f32, init_arr, final_arr));
+}
+
+test "device_to_host_sync_reclaim" {
     const device = try CuDevice.default();
     defer device.free();
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
