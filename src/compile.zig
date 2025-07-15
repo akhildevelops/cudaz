@@ -12,7 +12,8 @@ const Options = struct {
     use_fast_math: ?bool = null,
     maxrregcount: ?usize = null,
     include_paths: [][]const u8 = &[_][]const u8{},
-    arch: ?[][]const u8 = null,
+    arch: [][]const u8 = &[_][]const u8{},
+    macro: [][]const u8 = &[_][]const u8{},
 
     fn to_params(self: @This(), allocator: std.mem.Allocator) CompileError!std.ArrayList([:0]const u8) {
         var arr = std.ArrayList([:0]const u8).init(allocator);
@@ -35,6 +36,14 @@ const Options = struct {
         }
         if (self.maxrregcount) |field| {
             ext_str = try std.fmt.allocPrintZ(allocator, "--maxrregcount={d}", .{field});
+            try arr.append(ext_str);
+        }
+        for (self.arch) |arch| {
+            ext_str = try std.fmt.allocPrintZ(allocator, "-arch={s}", .{arch});
+            try arr.append(ext_str);
+        }
+        for (self.macro) |macro| {
+            ext_str = try std.fmt.allocPrintZ(allocator, "--define-macro={s}", .{macro});
             try arr.append(ext_str);
         }
         for (self.include_paths) |path| {
