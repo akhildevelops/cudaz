@@ -26,7 +26,7 @@ test "host_to_device" {
 
 test "device_to_host" {
     const device: CuDevice = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
