@@ -17,8 +17,8 @@ Check [test](./test) folder for code samples.
 ### Install
 Download and save the library path in `build.zig.zon` file by running
 
-#### zig 0.14.0
-`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.2.0.tar.gz`
+#### zig 0.14.1
+`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.2.1.tar.gz`
 
 #### zig 0.13.0
 `zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.1.0.tar.gz`
