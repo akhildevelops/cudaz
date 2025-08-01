@@ -1,6 +1,7 @@
 // Build file to create executables and small util binaries like clean to remove cached-dirs and default artifact folder.
 const std = @import("std");
 const utils = @import("test/utils.zig");
+const builtin = @import("builtin");
 
 fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
 
@@ -23,7 +24,6 @@ fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
                 "/usr/local/cuda",
                 "/opt/cuda",
                 "/usr/lib/cuda",
-                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3",
             };
             inline for (probable_roots) |parent| h: {
                 const cuda_file = parent ++ "/include/cuda.h";
@@ -39,6 +39,10 @@ fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
 }
 
 pub fn build(b: *std.Build) !void {
+    //// Doesn't support Windows
+    if (builtin.os.tag == .windows) {
+        return error.WINDOWS_NOT_SUPPORTED;
+    }
     ////////////////////////////////////////////////////////////
     //// Creates default options for building the library.
     // Standard target options allows the person running `zig build` to choose
@@ -104,6 +108,7 @@ pub fn build(b: *std.Build) !void {
         if (std.mem.indexOf(u8, test_file_contents, ".name = .cudaz") == null) {
             break :test_blk;
         }
+        const test_filter = b.option([]const u8, "test_filter", "Filters Tests") orelse "";
 
         const test_step = b.step("test", "Run library tests");
         const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
@@ -111,7 +116,7 @@ pub fn build(b: *std.Build) !void {
         while (try dir_iterator.next()) |item| {
             if (item.kind == .file) {
                 const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-                const sub_test = b.addTest(.{ .name = item.path, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
+                const sub_test = b.addTest(.{ .filters = &[_][]const u8{test_filter}, .name = item.path, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
                 // Add Module
                 sub_test.root_module.addImport("cudaz", cudaz_module);
 
