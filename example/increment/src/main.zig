@@ -22,7 +22,7 @@ pub fn main() !void {
     const data = [_]f32{ 1.2, 2.8, 0.123 };
     const cu_slice = try device.htodCopy(f32, &data);
     defer cu_slice.free();
-    std.debug.print("Copied array {d:.3} from system to GPU\n", .{data});
+    std.debug.print("Copied array {any} from system to GPU\n", .{data});
 
     // Compile and load the Kernel
     std.debug.print("Kernel program:\n{s}\n\n", .{increment_kernel});
@@ -37,7 +37,7 @@ pub fn main() !void {
     std.debug.print("Ran the Kernel against the array in GPU\n", .{});
 
     // Retrieve incremented data back to the system
-    const incremented_arr = try CuDevice.syncReclaim(f32, allocator, cu_slice);
-    defer incremented_arr.deinit();
-    std.debug.print("Retrieved incremented data {d:.3} from GPU to system\n", .{incremented_arr.items});
+    var incremented_arr = try CuDevice.syncReclaim(f32, allocator, cu_slice);
+    defer incremented_arr.deinit(allocator);
+    std.debug.print("Retrieved incremented data {any} from GPU to system\n", .{incremented_arr.items});
 }

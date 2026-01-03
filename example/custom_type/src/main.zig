@@ -22,9 +22,9 @@ pub fn main() !void {
 
     // Initialize host data with a custom data type
     var src_array = try std.ArrayList(Ctype.tuple).initCapacity(allocator, 10);
-    defer src_array.deinit();
+    defer src_array.deinit(allocator);
     for (0..10) |index| {
-        try src_array.append(.{ .x = @floatFromInt(index), .y = @as(f32, @floatFromInt(index)) + std.math.pi });
+        try src_array.append(allocator, .{ .x = @floatFromInt(index), .y = @as(f32, @floatFromInt(index)) + std.math.pi });
     }
 
     // Copy data from host to GPU
@@ -48,7 +48,7 @@ pub fn main() !void {
     std.debug.print("Ran the Kernel against the array in GPU\n", .{});
 
     // Retrieve incremented data back to the system
-    const incremented_arr = try CuDevice.syncReclaim(f32, allocator, dest_cu_slice);
-    defer incremented_arr.deinit();
-    std.debug.print("Retrieved offset data {d:.3} from GPU to system\n", .{incremented_arr.items});
+    var incremented_arr = try CuDevice.syncReclaim(f32, allocator, dest_cu_slice);
+    defer incremented_arr.deinit(allocator);
+    std.debug.print("Retrieved offset data {any} from GPU to system\n", .{incremented_arr.items});
 }

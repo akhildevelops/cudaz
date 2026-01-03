@@ -15,45 +15,80 @@ const Options = struct {
     arch: [][]const u8 = &[_][]const u8{},
     macro: [][]const u8 = &[_][]const u8{},
 
-    fn to_params(self: @This(), allocator: std.mem.Allocator) CompileError!std.ArrayList([:0]const u8) {
-        var arr = std.ArrayList([:0]const u8).init(allocator);
-        var ext_str: [:0]u8 = undefined;
+    fn to_params(self: @This(), allocator: std.mem.Allocator) CompileError!std.ArrayList([]const u8) {
+        var arr = std.ArrayList([]const u8){};
+        // helper variables
+        var tmp: []u8 = undefined;
+        var sentinel: []u8 = undefined;
+
         if (self.ftz) |field| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--ftz={any}", .{field});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--ftz={any}", .{field});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         if (self.prec_sqrt) |field| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--prec-sqrt={any}", .{field});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--prec-sqrt={any}", .{field});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         if (self.prec_div) |field| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--prec-div={any}", .{field});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--prec-div={any}", .{field});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         if (self.use_fast_math) |field| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--fmad={any}", .{field});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--fmad={any}", .{field});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         if (self.maxrregcount) |field| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--maxrregcount={d}", .{field});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--maxrregcount={d}", .{field});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         for (self.arch) |arch| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "-arch={s}", .{arch});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "-arch={s}", .{arch});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         for (self.macro) |macro| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--define-macro={s}", .{macro});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--define-macro={s}", .{macro});
+            const param = try allocator.alloc(u8, tmp.len + 1);
+            std.mem.copyForwards(u8, param[0..tmp.len], tmp);
+            param[tmp.len] = 0;
+            try arr.append(allocator, @as([]const u8, param[0 .. tmp.len + 1]));
+            allocator.free(tmp);
         }
         for (self.include_paths) |path| {
-            ext_str = try std.fmt.allocPrintZ(allocator, "--include-path={s}", .{path});
-            try arr.append(ext_str);
+            tmp = try std.fmt.allocPrint(allocator, "--include-path={s}", .{path});
+            sentinel = try allocator.allocSentinel(u8, tmp.len, 0);
+            std.mem.copyForwards(u8, sentinel[0..tmp.len], tmp);
+            try arr.append(allocator, @as([]const u8, sentinel));
+            allocator.free(tmp);
+            allocator.free(sentinel);
         }
         return arr;
     }
 };
-pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
+pub fn cudaText(cuda_text: []const u8, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
     var program: nvrtc.nvrtcProgram = undefined;
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, cuda_text.ptr, null, 0, null, null));
     try cudaProgram(program, options, allocator);
@@ -61,17 +96,21 @@ pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.A
     return ptx_data;
 }
 pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![:0]const u8 {
-    var data = std.ArrayList(u8).init(allocator);
-    try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));
-    const data_sentinel = try data.toOwnedSliceSentinel(0);
-    defer allocator.free(data_sentinel);
-    return try cudaText(data_sentinel, options, allocator);
+    const data = try cuda_path.readToEndAlloc(allocator, std.math.maxInt(usize));
+    defer allocator.free(data);
+
+    const data_with_zero = try allocator.alloc(u8, data.len + 1);
+    std.mem.copyForwards(u8, data_with_zero[0..data.len], data);
+    data_with_zero[data.len] = 0;
+    defer allocator.free(data_with_zero);
+
+    return try cudaText(data_with_zero[0 .. data.len + 1], options, allocator);
 }
 
 pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.mem.Allocator) CompileError!void {
     const n_o = if (options != null) options.? else @as(Options, .{});
     var parmas = try n_o.to_params(allocator);
-    const params_own = try parmas.toOwnedSlice();
+    const params_own = try parmas.toOwnedSlice(allocator);
     defer {
         for (params_own) |param| {
             allocator.free(param);
@@ -106,5 +145,5 @@ pub fn getPtx(prg: nvrtc.nvrtcProgram, allocator: std.mem.Allocator) CompileErro
     var ptx = try std.ArrayList(u8).initCapacity(allocator, ptx_size);
     ptx.expandToCapacity();
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcGetPTX(prg, ptx.items.ptr));
-    return try ptx.toOwnedSliceSentinel(0);
+    return try ptx.toOwnedSliceSentinel(allocator, 0);
 }

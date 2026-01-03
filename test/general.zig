@@ -49,7 +49,7 @@ test "device_to_host_sync_reclaim" {
     var float_arr = [_]f32{ 1.2, 3.4, 8.9 };
     const slice = try device.htodCopy(f32, &float_arr);
     var arr = try CuDevice.syncReclaim(f32, std.testing.allocator, slice);
-    defer arr.deinit();
+    defer arr.deinit(std.testing.allocator);
     try std.testing.expect(std.mem.eql(f32, &float_arr, arr.items));
 }
 const increment_kernel =
@@ -72,8 +72,8 @@ test "inc_file" {
 
     try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
 
-    const incremented_arr = try CuDevice.syncReclaim(f32, std.testing.allocator, cu_slice);
-    defer incremented_arr.deinit();
+    var incremented_arr = try CuDevice.syncReclaim(f32, std.testing.allocator, cu_slice);
+    defer incremented_arr.deinit(std.testing.allocator);
     for (incremented_arr.items, data) |id, d| {
         std.debug.assert(id - d == 1);
     }
@@ -102,8 +102,8 @@ test "ptx_sin_file" {
     // Run the func
     try func.run(.{ &dest_slice.device_ptr, &src_slice.device_ptr, &n }, cfg);
 
-    const sin_d = try CuDevice.syncReclaim(f32, std.testing.allocator, dest_slice);
-    defer sin_d.deinit();
+    var sin_d = try CuDevice.syncReclaim(f32, std.testing.allocator, dest_slice);
+    defer sin_d.deinit(std.testing.allocator);
 
     for (0..float_arr.len) |index| {
         try std.testing.expect(std.math.approxEqAbs(f32, @sin(float_arr[index]), sin_d.items[index], std.math.floatEps(f32)));
@@ -153,8 +153,8 @@ test "matmul_kernel" {
 
     try func.run(.{ &a_slice.device_ptr, &b_slice.device_ptr, &c_slice.device_ptr, &n }, cfg);
 
-    const arr = try CuDevice.syncReclaim(f32, std.testing.allocator, c_slice);
-    defer arr.deinit();
+    var arr = try CuDevice.syncReclaim(f32, std.testing.allocator, c_slice);
+    defer arr.deinit(std.testing.allocator);
 
     for (arr.items, [_]f32{ 7.0, 10.0, 15.0, 22.0 }) |c, o| {
         try std.testing.expect(std.math.approxEqAbs(f32, c, o, std.math.floatEps(f32)));

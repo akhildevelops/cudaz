@@ -7,6 +7,6 @@ test "curand" {
     const curand = try CuRng.default();
     const slice = try curand.genrandom(100);
     defer slice.free();
-    const arr = try CuDevice.syncReclaim(f32, std.testing.allocator, slice);
-    defer arr.deinit();
+    var arr = try CuDevice.syncReclaim(f32, std.testing.allocator, slice);
+    defer arr.deinit(std.testing.allocator);
 }

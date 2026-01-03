@@ -3,16 +3,16 @@ const TestFiles = struct {
     test_dir: std.fs.Dir,
     /// The caller owns the memory of the slice returned from this method.
     pub fn all(self: *const TestFiles, allocator: std.mem.Allocator) ![][]const u8 {
-        var test_files = std.ArrayList([]const u8).init(allocator);
-        defer test_files.deinit();
+        var test_files = std.ArrayList([]const u8){};
+        defer test_files.deinit(allocator);
         var walker = try self.test_dir.walk(allocator);
         defer walker.deinit();
         while (try walker.next()) |item| {
             if (item.kind == .file) {
-                try test_files.append(try allocator.dupe(u8, item.path));
+                try test_files.append(allocator, try allocator.dupe(u8, item.path));
             }
         }
-        return test_files.toOwnedSlice();
+        return test_files.toOwnedSlice(allocator);
     }
     pub fn next(self: *TestFiles) ?[]const u8 {
         _ = self; // autofix
