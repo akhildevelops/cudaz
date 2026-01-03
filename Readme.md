@@ -59,6 +59,7 @@ pub fn build(b: *std.Build) !void {
 
 ### Increment Array using GPU
 ```zig
+
 // src/main.zig
 
 const std = @import("std");
@@ -101,9 +102,10 @@ pub fn main() !void {
     try function.run(.{&cu_slice.device_ptr}, CuLaunchConfig{ .block_dim = .{ 3, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
 
     // Retrieve incremented data back to the system
-    const incremented_arr = try CuDevice.syncReclaim(f32, allocator, cu_slice);
-    defer incremented_arr.deinit();
+    var incremented_arr = try CuDevice.syncReclaim(f32, allocator, cu_slice);
+    defer incremented_arr.deinit(allocator);
 }
+
 ```
 For running above code system refer to the example project: [increment](./example/increment)
 
