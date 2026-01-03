@@ -116,7 +116,8 @@ pub fn build(b: *std.Build) !void {
         while (try dir_iterator.next()) |item| {
             if (item.kind == .file) {
                 const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-                const sub_test = b.addTest(.{ .filters = &[_][]const u8{test_filter}, .name = item.path, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
+                const test_module = b.addModule(item.path, .{ .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
+                const sub_test = b.addTest(.{ .filters = &[_][]const u8{test_filter}, .name = item.path, .root_module = test_module });
                 // Add Module
                 sub_test.root_module.addImport("cudaz", cudaz_module);
 
@@ -143,7 +144,8 @@ pub fn build(b: *std.Build) !void {
     //// Clean the cache folders and artifacts
 
     // Creates a binary that cleans up zig artifact folders
-    const clean = b.addExecutable(.{ .name = "clean", .root_source_file = b.path("bin/delete-zig-cache.zig"), .target = target, .optimize = optimize });
+    const delete_cache_module = b.addModule("clean", .{ .root_source_file = b.path("bin/delete-zig-cache.zig"), .target = target, .optimize = optimize });
+    const clean = b.addExecutable(.{ .name = "clean", .root_module = delete_cache_module });
 
     // Creates a run step
     const clean_step = b.addRunArtifact(clean);
