@@ -23,8 +23,15 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
     };
     switch (@typeInfo(cimport)) {
         .@"struct" => |x| {
+            comptime var n_errors = 0;
+            @setEvalBranchQuota(100000);
+            for (x.decls) |declaration| {
+                if (std.mem.startsWith(u8, declaration.name, prefix)) {
+                    n_errors += 1;
+                }
+            }
             const null_decls: []const Type.Declaration = &.{};
-            var errors: [100]Type.EnumField = undefined;
+            var errors: [n_errors]Type.EnumField = undefined;
             var counter: usize = 0;
             @setEvalBranchQuota(100000);
             for (x.decls) |declaration| {
