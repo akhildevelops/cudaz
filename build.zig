@@ -2,20 +2,23 @@
 const std = @import("std");
 const utils = @import("test/utils.zig");
 const builtin = @import("builtin");
-
-fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
-
+const Context = struct { io: std.Io, allocator: std.mem.Allocator };
+fn getCudaPath(path: ?[]const u8, context: Context) ![]const u8 {
+    const allocator = context.allocator;
+    const io = context.io;
     // Return of cuda_parent folder confirms presence of include directory.
     return incldue_path: {
         if (path) |parent| {
             const cuda_file = try std.fmt.allocPrint(allocator, "{s}/include/cuda.h", .{parent});
             defer allocator.free(cuda_file);
-            _ = std.fs.openFileAbsolute(cuda_file, .{}) catch |e| {
+            const _file = std.Io.Dir.openFileAbsolute(io, cuda_file, .{}) catch |e| {
                 switch (e) {
-                    std.fs.File.OpenError.FileNotFound => return error.CUDA_INSTALLATION_NOT_FOUND,
+                    std.Io.File.OpenError.FileNotFound => return error.CUDA_INSTALLATION_NOT_FOUND,
                     else => return e,
                 }
             };
+            _file.close(io);
+
             // Ignore /cuda.h
             break :incldue_path parent;
         } else {
@@ -27,9 +30,10 @@ fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
             };
             inline for (probable_roots) |parent| h: {
                 const cuda_file = parent ++ "/include/cuda.h";
-                _ = std.fs.openFileAbsolute(cuda_file, .{}) catch {
+                const _file = std.Io.Dir.openFileAbsolute(io, cuda_file, .{}) catch {
                     break :h;
                 };
+                _file.close(io);
                 // Ignore /cuda.h
                 break :incldue_path parent;
             }
@@ -43,6 +47,11 @@ pub fn build(b: *std.Build) !void {
     if (builtin.os.tag == .windows) {
         return error.WINDOWS_NOT_SUPPORTED;
     }
+    ////////////////////////////////////////////////////////////
+    //// Create Context
+    var _thread = std.Io.Threaded.init_single_threaded;
+    const io = _thread.io();
+    const context: Context = .{ .allocator = b.allocator, .io = io };
     ////////////////////////////////////////////////////////////
     //// Creates default options for building the library.
     // Standard target options allows the person running `zig build` to choose
@@ -62,7 +71,7 @@ pub fn build(b: *std.Build) !void {
 
     /////////////////////////////////////////////////////////////
     //// Get Cuda paths
-    const cuda_folder = try getCudaPath(cuda_path, b.allocator);
+    const cuda_folder = try getCudaPath(cuda_path, context);
     const cuda_include_dir = try std.fmt.allocPrint(b.allocator, "{s}/include", .{cuda_folder});
 
     ////////////////////////////////////////////////////////////
@@ -85,9 +94,10 @@ pub fn build(b: *std.Build) !void {
 
     inline for (lib_paths) |lib_path| h: {
         const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
-        _ = std.fs.openDirAbsolute(path, .{}) catch {
+        const _file = std.Io.Dir.openFileAbsolute(io, path, .{}) catch {
             break :h;
         };
+        _file.close(io);
         cudaz_module.addLibraryPath(.{ .cwd_relative = path });
     }
 
@@ -96,14 +106,15 @@ pub fn build(b: *std.Build) !void {
     // Creates a test binary.
     // Test step is created to be run from commandline i.e, zig build test
     test_blk: {
-        const test_file = std.fs.cwd().openFile("build.zig.zon", .{}) catch {
+        const test_file = std.Io.Dir.cwd().openFile(io, "build.zig.zon", .{}) catch {
             break :test_blk;
         };
-        defer test_file.close();
+        defer test_file.close(io);
 
-        const test_file_contents = try test_file.readToEndAlloc(b.allocator, std.math.maxInt(usize));
-        defer b.allocator.free(test_file_contents);
-
+        const test_file_buffer = try b.allocator.alloc(u8, 1024 * 1024);
+        defer b.allocator.free(test_file_buffer);
+        const read_bytes = try test_file.readPositionalAll(io, test_file_buffer, 0);
+        const test_file_contents = test_file_buffer[0..read_bytes];
         // Hack for identifying if the current root is cudaz project, if not don't register tests.
         if (std.mem.indexOf(u8, test_file_contents, ".name = .cudaz") == null) {
             break :test_blk;
@@ -111,9 +122,10 @@ pub fn build(b: *std.Build) !void {
         const test_filter = b.option([]const u8, "test_filter", "Filters Tests") orelse "";
 
         const test_step = b.step("test", "Run library tests");
-        const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
+        const test_dir = try std.Io.Dir.cwd().openDir(io, "test", .{ .iterate = true });
+        defer test_dir.close(io);
         var dir_iterator = try test_dir.walk(b.allocator);
-        while (try dir_iterator.next()) |item| {
+        while (try dir_iterator.next(io)) |item| {
             if (item.kind == .file) {
                 const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
                 const test_module = b.addModule(item.path, .{ .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
@@ -122,11 +134,11 @@ pub fn build(b: *std.Build) !void {
                 sub_test.root_module.addImport("cudaz", cudaz_module);
 
                 // Link libc, cuda and nvrtc libraries
-                sub_test.linkLibC();
-                sub_test.linkSystemLibrary("cuda");
-                sub_test.linkSystemLibrary("nvrtc");
-                sub_test.linkSystemLibrary("curand");
-                sub_test.linkSystemLibrary("cudart");
+                sub_test.root_module.link_libc = true;
+                sub_test.root_module.linkSystemLibrary("cuda", .{});
+                sub_test.root_module.linkSystemLibrary("nvrtc", .{});
+                sub_test.root_module.linkSystemLibrary("curand", .{});
+                sub_test.root_module.linkSystemLibrary("cudart", .{});
 
                 // Creates a run step for test binary
                 const run_sub_tests = b.addRunArtifact(sub_test);
