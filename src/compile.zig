@@ -16,7 +16,7 @@ const Options = struct {
     macro: [][]const u8 = &[_][]const u8{},
 
     fn to_params(self: @This(), allocator: std.mem.Allocator) CompileError!std.ArrayList([]const u8) {
-        var arr = std.ArrayList([]const u8){};
+        var arr = std.ArrayList([]const u8).empty;
         // helper variables
         var tmp: []u8 = undefined;
         var sentinel: []u8 = undefined;
@@ -95,16 +95,14 @@ pub fn cudaText(cuda_text: []const u8, options: ?Options, allocator: std.mem.All
     const ptx_data = try getPtx(program, allocator);
     return ptx_data;
 }
-pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![:0]const u8 {
-    const data = try cuda_path.readToEndAlloc(allocator, std.math.maxInt(usize));
-    defer allocator.free(data);
+pub fn cudaFile(cuda_path: std.Io.File, io: std.Io, options: ?Options, allocator: std.mem.Allocator) ![:0]const u8 {
+    const cuda_file_buffer = try allocator.alloc(u8, 1024 * 1024);
+    defer allocator.free(cuda_file_buffer);
+    const n_read_bytes = try cuda_path.readPositionalAll(io, cuda_file_buffer, 0);
+    cuda_file_buffer[n_read_bytes] = 0;
+    const data_with_zero = cuda_file_buffer[0 .. n_read_bytes + 1];
 
-    const data_with_zero = try allocator.alloc(u8, data.len + 1);
-    std.mem.copyForwards(u8, data_with_zero[0..data.len], data);
-    data_with_zero[data.len] = 0;
-    defer allocator.free(data_with_zero);
-
-    return try cudaText(data_with_zero[0 .. data.len + 1], options, allocator);
+    return try cudaText(data_with_zero, options, allocator);
 }
 
 pub fn cudaProgram(prg: nvrtc.nvrtcProgram, options: ?Options, allocator: std.mem.Allocator) CompileError!void {

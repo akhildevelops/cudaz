@@ -3,13 +3,14 @@ const Type = std.builtin.Type;
 pub fn EnumToError(comptime some_type: type) type {
     switch (@typeInfo(some_type)) {
         .@"enum" => |enum_type| {
-            var error_names: [enum_type.fields.len]Type.Error = undefined;
-            for (enum_type.fields, 0..) |field, index| {
-                error_names[index] = .{ .name = field.name };
+            comptime var _error_type: type = error{};
+            inline for (enum_type.fields) |field| {
+                _error_type = _error_type || @TypeOf(@field(anyerror, field.name));
             }
-            const error_type = @Type(std.builtin.Type{ .error_set = &error_names });
+            const error_type = _error_type;
+            // const error_type = @Type(std.builtin.Type{ .error_set = &error_names });
             return struct {
-                pub const Error: type = error_type;
+                pub const Error = error_type;
                 pub fn from_error_code(x: enum_type.tag_type) ?error_type {
                     const enum_val: some_type = @enumFromInt(x);
                     inline for (@typeInfo(error_type).error_set orelse unreachable) |error_val| {

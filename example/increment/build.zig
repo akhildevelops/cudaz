@@ -15,9 +15,9 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addImport("cudaz", cudaz_module);
 
     // Dynamically link to libc, cuda, nvrtc
-    exe.linkLibC();
-    exe.linkSystemLibrary("cuda");
-    exe.linkSystemLibrary("nvrtc");
+    exe.root_module.link_libc = true;
+    exe.root_module.linkSystemLibrary("cuda", .{});
+    exe.root_module.linkSystemLibrary("nvrtc", .{});
 
     // Run binary
     const run = b.step("run", "Run the binary");

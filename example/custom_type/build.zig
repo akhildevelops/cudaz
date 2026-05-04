@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{ .name = "main", .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = b.standardTargetOptions(.{}) }) });
     // exe points to main.zig that uses cudaz
-    exe.addIncludePath(b.path("c"));
+    exe.root_module.addIncludePath(b.path("c"));
     // Point to cudaz dependency
     const cudaz_dep = b.dependency(
         "cudaz",
@@ -15,9 +15,9 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addImport("cudaz", cudaz_module);
 
     // Dynamically link to libc, cuda, nvrtc
-    exe.linkLibC();
-    exe.linkSystemLibrary("cuda");
-    exe.linkSystemLibrary("nvrtc");
+    exe.root_module.link_libc = true;
+    exe.root_module.linkSystemLibrary("cuda", .{});
+    exe.root_module.linkSystemLibrary("nvrtc", .{});
 
     // Run binary
     const run = b.step("run", "Run the binary");

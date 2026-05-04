@@ -24,24 +24,34 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
     switch (@typeInfo(cimport)) {
         .@"struct" => |x| {
             comptime var n_errors = 0;
+            // Calculate number of errors.
             @setEvalBranchQuota(100000);
-            for (x.decls) |declaration| {
+            inline for (x.decls) |declaration| {
                 if (std.mem.startsWith(u8, declaration.name, prefix)) {
                     n_errors += 1;
                 }
             }
-            const null_decls: []const Type.Declaration = &.{};
-            var errors: [n_errors]Type.EnumField = undefined;
-            var counter: usize = 0;
+            comptime var error_names: [n_errors][]const u8 = undefined;
+            comptime var error_values: [n_errors]tag_type = undefined;
+            n_errors = 0;
             @setEvalBranchQuota(100000);
-            for (x.decls) |declaration| {
+            inline for (x.decls) |declaration| {
                 if (std.mem.startsWith(u8, declaration.name, prefix)) {
-                    errors[counter] = .{ .name = declaration.name, .value = @field(cimport, declaration.name) };
-                    counter += 1;
+                    error_names[n_errors] = declaration.name;
+                    error_values[n_errors] = @field(cimport, declaration.name);
+                    n_errors += 1;
                 }
             }
+            // var counter: usize = 0;
+            // @setEvalBranchQuota(100000);
+            // inline for (x.decls) |declaration| {
+            //     if (std.mem.startsWith(u8, declaration.name, prefix)) {
+            //         errors[counter] = .{ .name = declaration.name, .value = @field(cimport, declaration.name) };
+            //         counter += 1;
+            //     }
+            // }
 
-            return @Type(Type{ .@"enum" = .{ .tag_type = tag_type, .fields = errors[0..counter], .decls = null_decls, .is_exhaustive = false } });
+            return @Enum(tag_type, .exhaustive, &error_names, &error_values);
         },
         else => @compileError("Cannot generate error type"),
     }

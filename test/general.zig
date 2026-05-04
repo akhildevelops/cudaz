@@ -28,9 +28,7 @@ test "device_to_host" {
     const device: CuDevice = try CuDevice.default();
     defer device.deinit();
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+    const allocator = std.testing.allocator;
 
     const init_arr = &[_]f32{ 1.2, 3.4, 8.9 };
 
@@ -111,8 +109,10 @@ test "ptx_sin_file" {
 }
 
 test "compile_ptx" {
-    const file = try std.fs.cwd().openFile("cuda/sin.cu", .{});
-    const ptx_data = try CuCompile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
+    const io = std.testing.io;
+    const file = try std.Io.Dir.cwd().openFile(io, "cuda/sin.cu", .{});
+    defer file.close(io);
+    const ptx_data = try CuCompile.cudaFile(file, io, .{ .use_fast_math = true }, std.testing.allocator);
     std.testing.allocator.free(ptx_data);
 }
 

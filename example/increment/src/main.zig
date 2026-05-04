@@ -9,9 +9,9 @@ const increment_kernel = @embedFile("./increment.cu");
 
 pub fn main() !void {
     // Initialize allocator
-    var GP = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = GP.deinit();
-    const allocator = GP.allocator();
+    var gpa = std.heap.DebugAllocator(.{}).init;
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
     std.debug.print("Initialized allocator\n", .{});
     // Initialize GPU
     const device = try CuDevice.default();
