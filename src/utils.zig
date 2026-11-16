@@ -1,21 +1,21 @@
 const std = @import("std");
-const Type = std.builtin.Type;
+const Type = std.lang.Type;
 pub fn EnumToError(comptime some_type: type) type {
     switch (@typeInfo(some_type)) {
         .@"enum" => |enum_type| {
             comptime var _error_type: type = error{};
-            inline for (enum_type.fields) |field| {
-                _error_type = _error_type || @TypeOf(@field(anyerror, field.name));
+            inline for (enum_type.field_names) |field_name| {
+                _error_type = _error_type || @TypeOf(@field(anyerror, field_name));
             }
             const error_type = _error_type;
             // const error_type = @Type(std.builtin.Type{ .error_set = &error_names });
             return struct {
                 pub const Error = error_type;
                 pub fn from_error_code(x: enum_type.tag_type) ?error_type {
-                    const enum_val: some_type = @enumFromInt(x);
-                    inline for (@typeInfo(error_type).error_set orelse unreachable) |error_val| {
-                        if (std.mem.eql(u8, error_val.name, @tagName(enum_val))) {
-                            return @field(error_type, error_val.name);
+                    const enum_val: some_type = @fromBackingInt(x);
+                    inline for (@typeInfo(error_type).error_set.error_names orelse unreachable) |error_name| {
+                        if (std.mem.eql(u8, error_name, @tagName(enum_val))) {
+                            return @field(error_type, error_name);
                         }
                     }
                     return null;

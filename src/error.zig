@@ -1,5 +1,5 @@
 const std = @import("std");
-const Type = std.builtin.Type;
+const Type = std.lang.Type;
 
 const c = @import("c.zig");
 const cuda = c.cuda;
@@ -26,8 +26,8 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
             comptime var n_errors = 0;
             // Calculate number of errors.
             @setEvalBranchQuota(100000);
-            inline for (x.decls) |declaration| {
-                if (std.mem.startsWith(u8, declaration.name, prefix)) {
+            inline for (x.decl_names) |declaration| {
+                if (std.mem.startsWith(u8, declaration, prefix)) {
                     n_errors += 1;
                 }
             }
@@ -35,10 +35,10 @@ fn ErrorsToEnum(comptime tag_type: type, comptime cimport: type) type {
             comptime var error_values: [n_errors]tag_type = undefined;
             n_errors = 0;
             @setEvalBranchQuota(100000);
-            inline for (x.decls) |declaration| {
-                if (std.mem.startsWith(u8, declaration.name, prefix)) {
-                    error_names[n_errors] = declaration.name;
-                    error_values[n_errors] = @field(cimport, declaration.name);
+            inline for (x.decl_names) |declaration| {
+                if (std.mem.startsWith(u8, declaration, prefix)) {
+                    error_names[n_errors] = declaration;
+                    error_values[n_errors] = @field(cimport, declaration);
                     n_errors += 1;
                 }
             }

@@ -1,9 +1,23 @@
 const std = @import("std");
+const Translator = @import("translate_c").Translator;
 
 pub fn build(b: *std.Build) !void {
-    const exe = b.addExecutable(.{ .name = "main", .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = b.standardTargetOptions(.{}) }) });
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
     // exe points to main.zig that uses cudaz
-    exe.root_module.addIncludePath(b.path("c"));
+    const exe = b.addExecutable(.{ .name = "main", .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }) });
+
+    // Translate the custom C type into a Zig module
+    const translate_c_dep = b.dependency("translate_c", .{ .target = target, .optimize = optimize });
+    const tuple_translate: Translator = .init(translate_c_dep, .{
+        .name = "tuple_c",
+        .c_source_file = b.path("c/tuple.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.addImport("tuple_c", tuple_translate.mod);
+
     // Point to cudaz dependency
     const cudaz_dep = b.dependency(
         "cudaz",
