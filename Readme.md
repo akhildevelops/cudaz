@@ -17,6 +17,9 @@ Check [test](./test) folder for code samples.
 ### Install
 Download and save the library path in `build.zig.zon` file by running
 
+#### zig 0.17.0
+`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.5.0.tar.gz`
+
 #### zig 0.16.0
 `zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.4.0.tar.gz`
 
@@ -36,8 +39,18 @@ Add cudaz module in your project's `build.zig` file that will link to your proje
 const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
     // exe points to main.zig that uses cudaz
-    const exe = b.addExecutable(.{ .name = "main", .root_source_file = .{ .path = "src/main.zig" }, .target = b.host });
+    const exe = b.addExecutable(.{
+        .name = "main",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
 
     // Point to cudaz dependency
     const cudaz_dep = b.dependency("cudaz", .{});
@@ -47,9 +60,9 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addImport("cudaz", cudaz_module);
 
     // Dynamically link to libc, cuda, nvrtc
-    exe.linkLibC();
-    exe.linkSystemLibrary("cuda");
-    exe.linkSystemLibrary("nvrtc");
+    exe.root_module.link_libc = true;
+    exe.root_module.linkSystemLibrary("cuda", .{});
+    exe.root_module.linkSystemLibrary("nvrtc", .{});
 
     // Run binary
     const run = b.step("run", "Run the binary");
@@ -59,6 +72,10 @@ pub fn build(b: *std.Build) !void {
 
 
 ```
+
+> Zig 0.17 removed `@cImport`. cudaz now generates its CUDA bindings at build time
+> with the [`translate-c`](https://codeberg.org/ziglang/translate-c) package, which is
+> listed as a dependency of cudaz and fetched automatically by `zig build`.
 
 ### Increment Array using GPU
 ```zig
@@ -82,9 +99,9 @@ const increment_kernel =
 
 pub fn main() !void {
     // Initialize allocator
-    var GP = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = GP.deinit();
-    const allocator = GP.allocator();
+    var gpa: std.heap.SafeAllocator = .init(std.heap.page_allocator, .{});
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
     // Initialize GPU
     const device = try CuDevice.default();

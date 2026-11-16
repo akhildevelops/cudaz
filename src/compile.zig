@@ -22,7 +22,7 @@ const Options = struct {
         var sentinel: []u8 = undefined;
 
         if (self.ftz) |field| {
-            tmp = try std.fmt.allocPrint(allocator, "--ftz={any}", .{field});
+            tmp = try allocator.print("--ftz={any}", .{field});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -30,7 +30,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         if (self.prec_sqrt) |field| {
-            tmp = try std.fmt.allocPrint(allocator, "--prec-sqrt={any}", .{field});
+            tmp = try allocator.print("--prec-sqrt={any}", .{field});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -38,7 +38,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         if (self.prec_div) |field| {
-            tmp = try std.fmt.allocPrint(allocator, "--prec-div={any}", .{field});
+            tmp = try allocator.print("--prec-div={any}", .{field});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -46,7 +46,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         if (self.use_fast_math) |field| {
-            tmp = try std.fmt.allocPrint(allocator, "--fmad={any}", .{field});
+            tmp = try allocator.print("--fmad={any}", .{field});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -54,7 +54,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         if (self.maxrregcount) |field| {
-            tmp = try std.fmt.allocPrint(allocator, "--maxrregcount={d}", .{field});
+            tmp = try allocator.print("--maxrregcount={d}", .{field});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -62,7 +62,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         for (self.arch) |arch| {
-            tmp = try std.fmt.allocPrint(allocator, "-arch={s}", .{arch});
+            tmp = try allocator.print("-arch={s}", .{arch});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -70,7 +70,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         for (self.macro) |macro| {
-            tmp = try std.fmt.allocPrint(allocator, "--define-macro={s}", .{macro});
+            tmp = try allocator.print("--define-macro={s}", .{macro});
             const param = try allocator.alloc(u8, tmp.len + 1);
             std.mem.copyForwards(u8, param[0..tmp.len], tmp);
             param[tmp.len] = 0;
@@ -78,7 +78,7 @@ const Options = struct {
             allocator.free(tmp);
         }
         for (self.include_paths) |path| {
-            tmp = try std.fmt.allocPrint(allocator, "--include-path={s}", .{path});
+            tmp = try allocator.print("--include-path={s}", .{path});
             sentinel = try allocator.allocSentinel(u8, tmp.len, 0);
             std.mem.copyForwards(u8, sentinel[0..tmp.len], tmp);
             try arr.append(allocator, @as([]const u8, sentinel));
