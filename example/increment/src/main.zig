@@ -9,7 +9,7 @@ const increment_kernel = @embedFile("./increment.cu");
 
 pub fn main() !void {
     // Initialize allocator
-    var gpa = std.heap.DebugAllocator(.{}).init;
+    var gpa: std.heap.SafeAllocator = .init(std.heap.page_allocator, .{});
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     std.debug.print("Initialized allocator\n", .{});

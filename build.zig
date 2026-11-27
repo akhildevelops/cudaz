@@ -2,6 +2,7 @@
 const std = @import("std");
 const utils = @import("test/utils.zig");
 const builtin = @import("builtin");
+const Translator = @import("translate_c").Translator;
 const Context = struct { io: std.Io, allocator: std.mem.Allocator };
 fn getCudaPath(path: ?[]const u8, context: Context) ![]const u8 {
     const allocator = context.allocator;
@@ -9,7 +10,7 @@ fn getCudaPath(path: ?[]const u8, context: Context) ![]const u8 {
     // Return of cuda_parent folder confirms presence of include directory.
     return incldue_path: {
         if (path) |parent| {
-            const cuda_file = try std.fmt.allocPrint(allocator, "{s}/include/cuda.h", .{parent});
+            const cuda_file = try allocator.print("{s}/include/cuda.h", .{parent});
             defer allocator.free(cuda_file);
             const _file = std.Io.Dir.openFileAbsolute(io, cuda_file, .{}) catch |e| {
                 switch (e) {
@@ -72,12 +73,45 @@ pub fn build(b: *std.Build) !void {
     /////////////////////////////////////////////////////////////
     //// Get Cuda paths
     const cuda_folder = try getCudaPath(cuda_path, context);
-    const cuda_include_dir = try std.fmt.allocPrint(b.allocator, "{s}/include", .{cuda_folder});
+    const cuda_include_dir = b.fmt("{s}/include", .{cuda_folder});
+
+    ////////////////////////////////////////////////////////////
+    //// Translate CUDA C headers
+    // `@cImport` was removed in Zig 0.17, so the `cuda.h` and `nvrtc.h`
+    // bindings are generated at build time using the translate-c package.
+    const translate_c_dep = b.dependency("translate_c", .{ .target = target, .optimize = optimize });
+    const wrapper_files = b.addWriteFiles();
+    const cuda_wrapper = wrapper_files.add("cuda_wrapper.h",
+        \\#include <cuda.h>
+        \\
+    );
+    const nvrtc_wrapper = wrapper_files.add("nvrtc_wrapper.h",
+        \\#include <nvrtc.h>
+        \\
+    );
+
+    const cuda_translate: Translator = .init(translate_c_dep, .{
+        .name = "cuda_c",
+        .c_source_file = cuda_wrapper,
+        .target = target,
+        .optimize = optimize,
+    });
+    cuda_translate.addSystemIncludePath(.{ .cwd_relative = cuda_include_dir });
+
+    const nvrtc_translate: Translator = .init(translate_c_dep, .{
+        .name = "nvrtc_c",
+        .c_source_file = nvrtc_wrapper,
+        .target = target,
+        .optimize = optimize,
+    });
+    nvrtc_translate.addSystemIncludePath(.{ .cwd_relative = cuda_include_dir });
 
     ////////////////////////////////////////////////////////////
     //// CudaZ Module
     const cudaz_module = b.addModule("cudaz", .{ .root_source_file = b.path("./src/lib.zig") });
     cudaz_module.addIncludePath(.{ .cwd_relative = cuda_include_dir });
+    cudaz_module.addImport("cuda_c", cuda_translate.mod);
+    cudaz_module.addImport("nvrtc_c", nvrtc_translate.mod);
 
     const lib_paths = [_][]const u8{
         "lib",
@@ -93,7 +127,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     inline for (lib_paths) |lib_path| h: {
-        const path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ cuda_folder, lib_path });
+        const path = b.fmt("{s}/{s}", .{ cuda_folder, lib_path });
         const _file = std.Io.Dir.openFileAbsolute(io, path, .{}) catch {
             break :h;
         };
@@ -127,7 +161,7 @@ pub fn build(b: *std.Build) !void {
         var dir_iterator = try test_dir.walk(b.allocator);
         while (try dir_iterator.next(io)) |item| {
             if (item.kind == .file) {
-                const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
+                const test_path = b.fmt("{s}/{s}", .{ "test", item.path });
                 const test_module = b.addModule(item.path, .{ .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
                 const sub_test = b.addTest(.{ .filters = &[_][]const u8{test_filter}, .name = item.path, .root_module = test_module });
                 // Add Module
@@ -143,7 +177,7 @@ pub fn build(b: *std.Build) !void {
                 // Creates a run step for test binary
                 const run_sub_tests = b.addRunArtifact(sub_test);
 
-                const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.path[0 .. item.path.len - 4]});
+                const test_name = b.fmt("test-{s}", .{item.path[0 .. item.path.len - 4]});
                 // Create a test_step name
                 const ind_test_step = b.step(test_name, "Individual Test");
                 ind_test_step.dependOn(&run_sub_tests.step);

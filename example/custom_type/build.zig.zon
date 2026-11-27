@@ -20,6 +20,10 @@
             // .hash = "12207c8be3e4fa2cec0a24ab820b431ca9a6ccc484987d751d354ad6a58df97f6802",
             .path = "../../",
         },
+        .translate_c = .{
+            .url = "git+https://codeberg.org/ziglang/translate-c?ref=zig-0.17.x#cfac21f3199b2b02ce3fd7db652aa456421fe4ab",
+            .hash = "translate_c-2.0.2-Q_BUWvBNBwDnyehSiuAJmdFcMYHYGA-Jc3KiYdrV2Dqx",
+        },
     },
     .paths = .{
         // This makes *all* files, recursively, included in this package. It is generally

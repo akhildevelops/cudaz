@@ -1,5 +1,5 @@
 const std = @import("std");
-const Ctype = @cImport(@cInclude("../c/tuple.h"));
+const Ctype = @import("tuple_c");
 const Cuda = @import("cudaz");
 const CuDevice = Cuda.Device;
 const CuCompile = Cuda.Compile;
@@ -10,7 +10,7 @@ const increment_kernel = @embedFile("offset.cu");
 
 pub fn main() !void {
     // Initialize allocator
-    var gpa = std.heap.DebugAllocator(.{}).init;
+    var gpa: std.heap.SafeAllocator = .init(std.heap.page_allocator, .{});
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
     std.debug.print("Initialized allocator\n", .{});
